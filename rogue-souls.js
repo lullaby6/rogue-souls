@@ -4,7 +4,7 @@ const Slab = {
     color: 'transparent',
     tags: ['slab'],
     image: {
-        src: '/images/slab.png'
+        src: './images/slab.png'
     }
 }
 
@@ -12,7 +12,7 @@ const Brick = {
     color: 'transparent',
     tags: ['brick'],
     image: {
-        src: '/images/brick.png'
+        src: './images/brick.png'
     },
 }
 
@@ -25,7 +25,7 @@ const Player = {
     width: GRID_SIZE,
     height: GRID_SIZE,
     image: {
-        src: '/images/knight.png'
+        src: './images/knight.png'
     },
 
     onUpdate: current => {
