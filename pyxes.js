@@ -95,6 +95,7 @@ const defaultGameObjectProps = {
     ignorePause: false,
     active: true,
     visible: true,
+    dontRenderIfNotVisible: true,
     image: defaultGameObjectImageProps,
     text: defaultGameObjectTextProps,
 }
@@ -137,6 +138,18 @@ class GameObject {
     }
 
     render() {
+        if (
+            this.dontRenderIfNotVisible &&
+            !(
+                (this.x + this.image.x + this.width) > (this.scene.game.camera.x - this.scene.game.width/2) &&
+                (this.x + this.image.x) < (this.scene.game.camera.x + this.scene.game.width/2) &&
+                (this.y + this.image.y + this.height) > (this.scene.game.camera.y - this.scene.game.height/2) &&
+                (this.y + this.image.y) < (this.scene.game.camera.y + this.scene.game.height/2)
+            )
+        ) {
+            return
+        }
+
         this.scene.game.ctx.fillStyle = this.color
 
         this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
@@ -151,7 +164,7 @@ class GameObject {
                 this.scene.game.ctx.translate(0, (this.y * 2) + this.height)
                 this.scene.game.ctx.scale(1, -1)
             }
-            this.scene.game.ctx.drawImage(this.imageCache, this.x, this.y, this.width, this.height)
+            this.scene.game.ctx.drawImage(this.imageCache, this.x + this.image.x, this.y + this.image.y, this.width, this.height)
             this.scene.game.ctx.restore()
         }
 
@@ -370,6 +383,10 @@ class Scene {
 
     getGameObjectByPosition(x, y) {
         return Object.values(this.gameObjects).find(gameObject => gameObject.x === x && gameObject.y === y)
+    }
+
+    getGameObjectsByPosition(x, y) {
+        return Object.values(this.gameObjects).filter(gameObject => gameObject.x === x && gameObject.y === y)
     }
 
     getGameObjects(){

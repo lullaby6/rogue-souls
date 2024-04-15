@@ -76,23 +76,56 @@ const Structure = {
     tags: ['structure'],
     directions: ['left', 'right', 'up', 'down'],
 
-    onLoad: current => {
+    // image: {
+    //     src: '/assets/images/slab.png'
+    // },
+
+    loadTileMaps: current => {
+        const map = current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE)
+
+        console.log(map);
+        if (!current.directions.includes('up')) {
+            map[0][1] = 0
+            map[0][2] = 0
+        }
+
+        if (!current.directions.includes('down')) {
+            map[map.length - 1][1] = 0
+            map[map.length - 1][2] = 0
+        }
+
+        if (!current.directions.includes('left')) {
+            map[1][0] = 0
+            map[2][0] = 0
+        }
+
+        if (!current.directions.includes('right')) {
+            map[1][map[0].length - 1] = 0
+            map[2][map[0].length - 1] = 0
+        }
+
+
         current.scene.instantTileMap({
             x: current.x,
             y: current.y,
             size: GRID_SIZE ,
             tiles: {
+                // 0: {
+                //     ...GameObject,
+                //     color: 'transparent',
+                // },
                 0: Slab,
                 1: Brick
             },
-            map: current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE),
+            map,
         })
     },
 }
 
 const MainScene = {
-    maxStructures: 5,
+    maxStructures: 10,
     structureIndex: 0,
+    tileMapsLoaded: false,
 
     gameObjects: {
         mainRoom: {
@@ -115,6 +148,12 @@ const MainScene = {
             const randomStructure = randomItemFromArray(structures)
 
             current.createStructure(current, randomStructure)
+        } else if (!current.tileMapsLoaded) {
+            current.tileMapsLoaded = true
+
+            structures.forEach(structure => {
+                structure.loadTileMaps(structure)
+            })
         }
 
         // console.log(current.game.currentFPS);
@@ -122,8 +161,6 @@ const MainScene = {
 
     createStructure: (current, structure) => {
         const direction = randomItemFromArray(structure.directions)
-
-        structure.directions = structure.directions.filter(d => d != direction)
 
         current.structureIndex += 1
 
@@ -175,6 +212,8 @@ const MainScene = {
             current.structureIndex -= 1
             return
         }
+
+        structure.directions = structure.directions.filter(d => d != direction)
 
         current.instantGameObject(newStructure)
     },
