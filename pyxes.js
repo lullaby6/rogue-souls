@@ -120,6 +120,17 @@ class GameObject {
         })
 
         this.mouseOver = false
+
+        this.imageCache = null
+
+        if (this.image && this.image.src && this.image.src != '') {
+            const image = new Image()
+            image.src = this.image.src
+            const gameObject = this
+            image.onload = function() {
+                gameObject.imageCache = image
+            }
+        }
     }
 
     render() {
@@ -127,12 +138,8 @@ class GameObject {
 
         this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
 
-        if (this.image && this.image.src && this.image.src != '') {
-            const image = new Image()
-            image.onload = function() {
-                this.scene.game.ctx.drawImage(image, this.x + this.image.x, this.y + this.image.y, this.image.width, this.image.height)
-            }
-            image.src = this.image.src
+        if (this.imageCache) {
+            this.scene.game.ctx.drawImage(this.imageCache, this.x, this.y, this.width, this.height)
         }
 
         if (this.text && this.text.value && this.text.value != '') {
@@ -232,6 +239,15 @@ const defaultSceneProps = {
     name: null,
     ignorePause: false,
     gameObjects: {},
+    tileMaps: {},
+}
+
+const defaultSceneTileMapProps = {
+    x: 0,
+    y: 0,
+    size: 25,
+    tiles: {},
+    map: []
 }
 
 class Scene {
@@ -250,10 +266,48 @@ class Scene {
         Object.entries(props.gameObjects).forEach(([name, gameObject]) => {
             this.addGameObject(name, gameObject)
         })
+
+        Object.entries(props.tileMaps).forEach(([name, tileMap]) => {
+            props.tileMaps[name] = {
+                ...defaultSceneTileMapProps,
+                ...tileMap
+            }
+        })
+
+        Object.entries(props.tileMaps).forEach(([name, tileMap]) => {
+            this.addTileMap(name, tileMap)
+        })
+
+        this.tileMapsProps = props.tileMaps
+        this.tileMaps = []
+        Object.entries(props.tileMaps).forEach(([name, tileMap]) => {
+            this.addTileMap(name, tileMap)
+        })
+
     }
 
     sortGameObjectsByZ() {
 
+    }
+
+    addTileMap(name, tileMap) {
+        console.log(name, tileMap);
+        tileMap.map.forEach((row, y) => {
+            row.forEach((col, x) => {
+                this.instantGameObject({
+                    ...tileMap.tiles[tileMap.map[y][x]],
+                    x: tileMap.x + x * tileMap.size,
+                    y: tileMap.y + y * tileMap.size,
+                    width: tileMap.size,
+                    height: tileMap.size,
+                    tileMap: name
+                })
+            })
+        })
+    }
+
+    instantTileMap(tileMap) {
+        return this.addTileMap(crypto.randomUUID(), tileMap)
     }
 
     addGameObject(name , gameObject) {

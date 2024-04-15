@@ -1,38 +1,59 @@
-const GRID_SIZE = 50
-
-const Slab = {
-    color: 'transparent',
-    tags: ['slab'],
-    image: {
-        src: '/assets/images/slab.png'
-    }
-}
-
-const Brick = {
-    color: 'transparent',
-    tags: ['brick'],
-    image: {
-        src: 'brick.png'
-    },
-}
-
 const Structure = {
-    color: 'transparent',
+    color: 'rgb(0, 0, 0)',
+    width: 50,
+    height: 50,
     tags: ['structure'],
     directions: ['left', 'right', 'up', 'down'],
+    text: {
+        fontSize: 32,
+        stroke: true,
+    },
 
     onLoad: current => {
-        current.scene.instantTileMap({
-            x: current.x,
-            y: current.y,
-            size: 50,
-            tiles: {
-                0: Slab,
-                1: Brick
-            },
-            map: current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE),
-        })
+        current.text.value = current.structureIndex
     },
+
+    onCollide({current, target}) {
+        if (current.parentStructure && current.parentStructure != target.name && current.name != target.parentStructure) {
+            console.log('collide :(', current.parentStructure, target.name);
+            current.color = 'red'
+        }
+    },
+
+    onCurrentClick: ({current}) => {
+        console.log(current.id);
+        current.color = 'green'
+    },
+
+    onCurrentMouseEnter: ({current}) => {
+        console.log(current.id);
+        current.color = 'red'
+    },
+
+    onCurrentMouseLeave: ({current}) => {
+        console.log(current.id);
+        current.color = 'black'
+    },
+}
+
+function generateMapRoom(rows, cols) {
+	const map = []
+
+    for (let row_i = 0; row_i < rows; row_i++) {
+        const row = []
+
+		for (let col_i = 0; col_i < cols; col_i++) {
+            if (row_i == 0 || row_i == rows - 1 || col_i == 0 || col_i == cols - 1) {
+                row.push(1)
+            } else {
+                row.push(0)
+            }
+        }
+
+		map.push(row)
+    }
+
+	return map
 }
 
 const MainScene = {
@@ -42,14 +63,14 @@ const MainScene = {
     gameObjects: {
         mainRoom: {
             ...Structure,
-            width: GRID_SIZE * 10,
-            height: GRID_SIZE * 10,
+            width: randomIntFromInterval(50, 150),
+            height: randomIntFromInterval(50, 150),
             structureIndex: 0,
-        },
+        }
     },
 
     onLoad: current => {
-        current.game.camera.setZoom(0.125)
+        // current.game.camera.setZoom(0.375)
     },
 
     onUpdate: current => {
@@ -65,6 +86,10 @@ const MainScene = {
         current.game.camera.setTarget(mainRoom)
     },
 
+    onKeydown: ({event, current}) => {
+
+    },
+
     createStructure: (current, structure) => {
         const direction = randomItemFromArray(structure.directions)
 
@@ -77,11 +102,12 @@ const MainScene = {
             parentStructure: structure.name,
             x: structure.x,
             y: structure.y,
+            color: `rgb(${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)})`,
             structureIndex: current.structureIndex
         }
 
-        newStructure.width = GRID_SIZE * randomIntFromInterval(5, 10)
-        newStructure.height = GRID_SIZE * randomIntFromInterval(5, 10)
+        newStructure.width = randomIntFromInterval(50, 150)
+        newStructure.height = randomIntFromInterval(50, 150)
 
         switch (direction) {
             case 'right':
@@ -116,38 +142,16 @@ const MainScene = {
             }
         })
 
-        if (collide) {
-            current.structureIndex -= 1
-            return
-        }
+        if (collide) return
 
         current.instantGameObject(newStructure)
-    },
-
-    generateMapRoom: (rows, cols) => {
-        const map = []
-
-        for (let row_i = 0; row_i < rows; row_i++) {
-            const row = []
-
-            for (let col_i = 0; col_i < cols; col_i++) {
-                if (row_i == 0 || row_i == rows - 1 || col_i == 0 || col_i == cols - 1) {
-                    row.push(1)
-                } else {
-                    row.push(0)
-                }
-            }
-
-            map.push(row)
-        }
-
-        return map
     }
 }
 
 const game = new Game({
-    backgroundColor: '#0f0f0f',
+    backgroundColor: 'gray',
     fps: 60,
+    // cursor: true,
     title: 'Rogue Souls',
 
     scenes: {
@@ -155,8 +159,17 @@ const game = new Game({
     },
 
     onKeydown: ({event, current}) => {
-        if (event.key == 'f') current.toggleFullscreen()
+        if (event.key == 'p') current.togglePause()
+        else if (event.key == 'r') current.resetScene()
+        else if (event.key == 'f') current.toggleFullscreen()
     },
+
+    // onPause: current => {
+    //     current.setCursorVisibility(true)
+    // },
+    // onResume: current => {
+    //     current.setCursorVisibility(false)
+    // }
 })
 
 game.run()
