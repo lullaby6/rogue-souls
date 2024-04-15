@@ -108,10 +108,6 @@ const Structure = {
         pattern: true,
     },
 
-    onLoad: current => {
-        // current.image.width = current.width
-    },
-
     loadTileMaps: current => {
         const map = current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
@@ -271,7 +267,7 @@ const game = new Game({
     backgroundColor: '#0f0f0f',
     title: 'Rogue Souls',
     imageSmoothingEnabled: false,
-    // cursor: false,
+    cursor: false,
 
     scenes: {
         main: MainScene
