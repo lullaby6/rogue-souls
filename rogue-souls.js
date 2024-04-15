@@ -174,8 +174,8 @@ const MainScene = {
             structureIndex: current.structureIndex
         }
 
-        newStructure.width = GRID_SIZE * randomIntFromInterval(5, 10)
-        newStructure.height = GRID_SIZE * randomIntFromInterval(5, 10)
+        newStructure.width = GRID_SIZE * randomIntFromInterval(6, 12)
+        newStructure.height = GRID_SIZE * randomIntFromInterval(6, 12)
 
         switch (direction) {
             case 'right':
