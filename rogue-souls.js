@@ -32,7 +32,7 @@ const Player = {
         current.scene.game.camera.setTarget(current, 10)
     },
 
-    onKeydown: ({event, current}) => {
+    onKeyup: ({event, current}) => {
         if (current.scene.game.pause) return
 
         if (event.key == 'w') {
@@ -78,10 +78,6 @@ const Structure = {
     tags: ['structure'],
     directions: ['left', 'right', 'up', 'down'],
 
-    // image: {
-    //     src: '/images/slab.png'
-    // },
-
     loadTileMaps: current => {
         const map = current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
@@ -106,16 +102,11 @@ const Structure = {
             map[2][map[0].length - 1] = 0
         }
 
-
         current.scene.instantTileMap({
             x: current.x,
             y: current.y,
             size: GRID_SIZE ,
             tiles: {
-                // 0: {
-                //     ...GameObject,
-                //     color: 'transparent',
-                // },
                 0: Slab,
                 1: Brick
             },
@@ -139,10 +130,6 @@ const MainScene = {
         Player: Player
     },
 
-    onLoad: current => {
-        // current.game.camera.setZoom(0.375)
-    },
-
     onUpdate: current => {
         const structures = current.getGameObjectsByTag('structure')
 
@@ -158,7 +145,7 @@ const MainScene = {
             })
         }
 
-        // console.log(current.game.currentFPS);
+        console.log(current.game.currentFPS);
     },
 
     createStructure: (current, structure) => {
@@ -246,6 +233,7 @@ const game = new Game({
     fps: 60,
     title: 'Rogue Souls',
     imageSmoothingEnabled: false,
+    cursor: false,
 
     scenes: {
         main: MainScene
@@ -256,6 +244,14 @@ const game = new Game({
         else if (event.key == 'p') current.togglePause()
         else if (event.key == 'r') current.resetScene()
     },
+
+    onPause: current => {
+        current.setCursorVisibility(true)
+    },
+
+    onResume: current => {
+        current.setCursorVisibility(false)
+    }
 })
 
 game.run()
