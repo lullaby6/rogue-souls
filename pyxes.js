@@ -30,6 +30,14 @@ function getSignWithOne(number) {
     return Math.abs(number) / number;
 }
 
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width,
+        y: (evt.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height
+    };
+}
+
 const randomFloatInInterval = inter => Math.random() * (inter - (-inter)) + inter
 
 const randomIntInInterval = inter => Math.floor(Math.random() * (inter - (-inter) + 1) + inter)
@@ -41,6 +49,30 @@ const randomIntFromInterval = (min, max) => Math.floor(Math.random() * (max - mi
 const randomItemFromArray = array => array[Math.floor(Math.random() * array.length)]
 
 const cloneObject = obj => Object.assign({}, obj)
+
+const defaultGameObjectImageProps = {
+    src: '',
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+}
+
+const defaultGameObjectTextProps = {
+    value: '',
+    x: 0,
+    y: 0,
+    bold: false,
+    italic: false,
+    font: 'Arial',
+    fontSize: 16,
+    align: 'left',
+    baseline: 'top',
+    color: '#fff',
+    stroke: false,
+    strokeColor: '#000',
+    lineWidth: 1,
+}
 
 const defaultGameObjectProps = {
     name: null,
@@ -60,30 +92,8 @@ const defaultGameObjectProps = {
     ignorePause: false,
     active: true,
     visible: true,
-
-    image: {
-        src: '',
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0
-    },
-
-    text: {
-        value: '',
-        x: 0,
-        y: 0,
-        bold: false,
-        italic: false,
-        font: 'Arial',
-        fontSize: 16,
-        align: 'left',
-        baseline: 'top',
-        color: '#fff',
-        stroke: false,
-        strokeColor: '#000',
-        lineWidth: 1,
-    },
+    image: defaultGameObjectImageProps,
+    text: defaultGameObjectTextProps,
 }
 
 class GameObject {
@@ -95,9 +105,21 @@ class GameObject {
             ...props
         }
 
+        props.image = {
+            ...defaultGameObjectImageProps,
+            ...props.image
+        }
+
+        props.text = {
+            ...defaultGameObjectTextProps,
+            ...props.text
+        }
+
         Object.entries(props).forEach(([key, value]) => {
             this[key] = value
         })
+
+        this.mouseOver = false
     }
 
     render() {
@@ -116,12 +138,12 @@ class GameObject {
         if (this.text && this.text.value && this.text.value != '') {
             this.scene.game.ctx.font = `${this.text.bold ? 'bold ' : ''}${this.text.italic ? 'italic ' : ''}${this.text.fontSize}px ${this.text.font}`;
             this.scene.game.ctx.fillStyle = this.text.color;
-            this.scene.game.ctx.fillText(this.text.value, this.x + this.text.x, thix.y + this.text.y);
+            this.scene.game.ctx.fillText(this.text.value, this.x + this.text.x, this.y + this.text.y + this.text.fontSize);
 
             if (this.text.stroke) {
                 this.scene.game.ctx.strokeStyle = this.text.strokeColor;
                 this.scene.game.ctx.lineWidth = this.text.lineWidth;
-                this.scene.game.ctx.strokeText(this.text.value, this.x + this.text.x, this.y + this.text.y);
+                this.scene.game.ctx.strokeText(this.text.value, this.x + this.text.x, this.y + this.text.y + this.text.fontSize);
             }
         }
     }
@@ -292,7 +314,7 @@ const defaultGameProps = {
     cursor: true,
     cursorStyle: 'default',
     fps: 60,
-    events: ['click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseout', 'mouseover', 'change', 'focus', 'blur', 'select', 'keydown', 'keyup'],
+    events: ['click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseenter', 'mouseleave', 'mouseout', 'mouseover', 'change', 'focus', 'blur', 'select', 'keydown', 'keyup'],
     imageSmoothingEnabled: true,
     contextMenu: false,
     running: false,
@@ -342,6 +364,65 @@ class Game {
 
         this.fullScreen = props.fullScreen
         if (this.fullScreen === true) this.setFullscreen(this.fullScreen)
+
+        this.mousePosition = {x: 0, y: 0}
+        this.mouseFixedPosition = {x: 0, y: 0}
+
+        window.addEventListener('mousemove', event => {
+            this.mousePosition = this.getMousePosition(event)
+            this.mouseFixedPosition = this.getMouseFixedPosition(event)
+
+            const activeScene = this.getActiveScene()
+            const gameObjects = activeScene.getGameObjects()
+
+            Object.entries(gameObjects).forEach(([name, gameObject]) => {
+                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject)) {
+                    if (gameObject.mouseOver == false) {
+                        gameObject.mouseOver = true
+                        if (gameObject.onCurrentMouseEnter && typeof gameObject.onCurrentMouseEnter === 'function') gameObject.onCurrentMouseEnter({event, current: gameObject})
+                    }
+                } else if (gameObject.mouseOver == true) {
+                    gameObject.mouseOver = false
+                    if (gameObject.onCurrentMouseLeave && typeof gameObject.onCurrentMouseLeave === 'function') gameObject.onCurrentMouseLeave({event, current: gameObject})
+                }
+            })
+        })
+
+        window.addEventListener('click', event => {
+            this.mousePosition = this.getMousePosition(event)
+            this.mouseFixedPosition = this.getMouseFixedPosition(event)
+
+            const activeScene = this.getActiveScene()
+            const gameObjects = activeScene.getGameObjects()
+
+            Object.entries(gameObjects).forEach(([name, gameObject]) => {
+                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentClick && typeof gameObject.onCurrentClick === 'function') gameObject.onCurrentClick({event, current: gameObject})
+            })
+        })
+
+        window.addEventListener('mousedown', event => {
+            this.mousePosition = this.getMousePosition(event)
+            this.mouseFixedPosition = this.getMouseFixedPosition(event)
+
+            const activeScene = this.getActiveScene()
+            const gameObjects = activeScene.getGameObjects()
+
+            Object.entries(gameObjects).forEach(([name, gameObject]) => {
+                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentMousedown && typeof gameObject.onCurrentMousedown === 'function') gameObject.onCurrentMousedown({event, current: gameObject})
+            })
+        })
+
+        window.addEventListener('mouseup', event => {
+            this.mousePosition = this.getMousePosition(event)
+            this.mouseFixedPosition = this.getMouseFixedPosition(event)
+
+            const activeScene = this.getActiveScene()
+            const gameObjects = activeScene.getGameObjects()
+
+            Object.entries(gameObjects).forEach(([name, gameObject]) => {
+                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentMouseup && typeof gameObject.onCurrentMouseup === 'function') gameObject.onCurrentMouseup({event, current: gameObject})
+            })
+        })
 
         this.events = props.events
         this.events.forEach(eventName => {
@@ -577,12 +658,20 @@ class Game {
         this.updateListener()
     }
 
-    getMousePosition(event){
+    getMousePosition(event) {
         const rect = this.cv.getBoundingClientRect();
-        this.getMouse = {
+        return {
             x: (event.clientX - rect.left) - (-this.camera.x + this.width/2),
             y: (event.clientY - rect.top) - (-this.camera.y + this.height/2)
         }
+    }
+
+    getMouseFixedPosition(event) {
+        const rect = this.cv.getBoundingClientRect();
+        return {
+            x: (event.clientX - rect.left) / (rect.right - rect.left) * this.cv.width,
+            y: (event.clientY - rect.top) / (rect.bottom - rect.top) * this.cv.height
+        };
     }
 
     async setFullscreen(fullscreen = true){

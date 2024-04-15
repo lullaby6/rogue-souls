@@ -4,6 +4,14 @@ const Structure = {
     height: 50,
     tags: ['structure'],
     directions: ['left', 'right', 'up', 'down'],
+    text: {
+        fontSize: 32,
+        stroke: true,
+    },
+
+    onLoad: current => {
+        current.text.value = current.structureIndex
+    },
 
     onCollide({current, target}) {
         if (current.parentStructure && current.parentStructure != target.name && current.name != target.parentStructure) {
@@ -12,25 +20,37 @@ const Structure = {
         }
     },
 
-    onClick: ({current}) => {
+    onCurrentClick: ({current}) => {
         console.log(current.id);
-        // current.color = 'red'
-    }
+        current.color = 'red'
+    },
+
+    onCurrentMouseEnter: ({current}) => {
+        console.log(current.id);
+        current.color = 'red'
+    },
+
+    onCurrentMouseLeave: ({current}) => {
+        console.log(current.id);
+        current.color = 'black'
+    },
 }
 
 const MainScene = {
     maxStructures: 20,
+    structureIndex: 0,
 
     gameObjects: {
         mainRoom: {
             ...Structure,
             width: randomIntFromInterval(50, 150),
-            height: randomIntFromInterval(50, 150)
+            height: randomIntFromInterval(50, 150),
+            structureIndex: 0,
         }
     },
 
     onLoad: current => {
-        current.game.camera.setZoom(1)
+        // current.game.camera.setZoom(0.375)
     },
 
     onUpdate: current => {
@@ -55,12 +75,15 @@ const MainScene = {
 
         structure.directions = structure.directions.filter(d => d != direction)
 
+        current.structureIndex += 1
+
         let newStructure = {
             ...Structure,
-            parentStructure: structure.name,    
+            parentStructure: structure.name,
             x: structure.x,
             y: structure.y,
             color: `rgb(${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)})`,
+            structureIndex: current.structureIndex
         }
 
         newStructure.width = randomIntFromInterval(50, 150)
