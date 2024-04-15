@@ -33,6 +33,8 @@ const Player = {
     },
 
     onKeydown: ({event, current}) => {
+        if (current.scene.game.pause) return
+
         if (event.key == 'w') {
             const checkGameObject = current.scene.getGameObjectByPosition(current.x, current.y - GRID_SIZE)
 
@@ -251,6 +253,8 @@ const game = new Game({
 
     onKeydown: ({event, current}) => {
         if (event.key == 'f') current.toggleFullscreen()
+        else if (event.key == 'p') current.togglePause()
+        else if (event.key == 'r') current.resetScene()
     },
 })
 

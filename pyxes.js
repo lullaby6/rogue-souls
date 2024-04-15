@@ -96,6 +96,7 @@ const defaultGameObjectProps = {
     active: true,
     visible: true,
     dontRenderIfNotVisible: true,
+    dontUpdateIfNotVisible: false,
     image: defaultGameObjectImageProps,
     text: defaultGameObjectTextProps,
 }
@@ -140,12 +141,7 @@ class GameObject {
     render() {
         if (
             this.dontRenderIfNotVisible &&
-            !(
-                (this.x + this.image.x + this.width) > (this.scene.game.camera.x - this.scene.game.width/2) &&
-                (this.x + this.image.x) < (this.scene.game.camera.x + this.scene.game.width/2) &&
-                (this.y + this.image.y + this.height) > (this.scene.game.camera.y - this.scene.game.height/2) &&
-                (this.y + this.image.y) < (this.scene.game.camera.y + this.scene.game.height/2)
-            )
+            !this.isVisible()
         ) {
             return
         }
@@ -220,6 +216,15 @@ class GameObject {
 
     setInactive() {
         this.active = false
+    }
+
+    isVisible() {
+        return (
+            (this.x + this.width) > (this.scene.game.camera.x - this.scene.game.width/2) &&
+            (this.x) < (this.scene.game.camera.x + this.scene.game.width/2) &&
+            (this.y + this.height) > (this.scene.game.camera.y - this.scene.game.height/2) &&
+            (this.y) < (this.scene.game.camera.y + this.scene.game.height/2)
+        )
     }
 }
 
