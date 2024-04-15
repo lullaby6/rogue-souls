@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p2.js/0.7.1/p2.min.js" integrity="sha512-SU6tqA+YK4akayI+sUt7HarDVpnJ9NdWy5UwIp5Tnx7KwzoSfwthJI8TBp+Job5IzhHnwyGcL+bRcKJ/n7TUPA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+    <script>
+        var world = new p2.World({
+            gravity:[0, -9.82]
+        });
+
+        var circleBody = new p2.Body({
+            mass: 5,
+            position: [0, 10]
+        });
+
+        var circleShape = new p2.Circle({ radius: 1 });
+        circleBody.addShape(circleShape);
+
+        world.addBody(circleBody);
+
+        var groundBody = new p2.Body({
+            mass: 0
+        });
+        var groundShape = new p2.Plane();
+        groundBody.addShape(groundShape);
+        world.addBody(groundBody);
+
+        var fixedTimeStep = 1 / 60;
+        var maxSubSteps = 10;
+        var lastTime;
+
+        function animate(time){
+            requestAnimationFrame(animate);
+
+            var deltaTime = lastTime ? (time - lastTime) / 1000 : 0;
+
+            world.step(fixedTimeStep, deltaTime, maxSubSteps);
+
+            // renderCircleAtPosition(circleBody.interpolatedPosition);
+
+            lastTime = time;
+        }
+
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./matter.min.js"></script>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const Engine = Matter.Engine,
+            Render = Matter.Render,
+            Runner = Matter.Runner,
+            Body = Matter.Body,
+            Bodies = Matter.Bodies,
+            Composite = Matter.Composite,
+            Composites = Matter.Composites,
+            Common = Matter.Common,
+            MouseConstraint = Matter.MouseConstraint,
+            Mouse = Matter.Mouse;
+
+        const engine = Engine.create();
+
+        engine.world.gravity.y = 0.1;
+
+        const canvas = document.getElementById('canvas');
+        canvas.width = 500
+        canvas.height = 500
+
+        const render = Render.create({
+            canvas: canvas,
+            engine: engine,
+            options: {
+                width: 500,
+                height: 500,
+                wireframes: false,
+                background: '#fff'
+            }
+        });
+
+        const boxA = Bodies.circle(400, 200, 80, 80);
+        boxA.render.fillStyle = 'red'
+        const boxB = Bodies.rectangle(450, 50, 80, 80);
+        const ground = Bodies.rectangle(400, 400, 810, 60, { isStatic: true });
+
+        Composite.add(engine.world, [boxB, ground]);
+
+        const mouse = Matter.Mouse.create(render.canvas);
+        const mouseConstraint = Matter.MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 0.2, // Rigidez del arrastre
+            }
+        });
+
+        Composite.add(engine.world, [boxA, mouseConstraint]);
+
+        Matter.Events.on(mouseConstraint, 'mousedown', event => {
+            const bodies = Matter.Composite.allBodies(engine.world);
+            const clicked = Matter.Query.point(bodies, event.mouse.position);
+            if (clicked.length > 0) {
+                clicked.forEach(body => {
+                    if (body.id === boxA.id) {
+                        console.log("click");
+                    }
+                });
+            }
+        });
+
+        Render.run(render);
+
+        const runner = Runner.create();
+
+        Runner.run(runner, engine);
+    </script>
+</body>
+</html>

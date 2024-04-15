@@ -26,7 +26,7 @@ const getDifference = (a, b) => Math.abs(a - b)
 
 function getSignWithOne(number) {
     if (number === 0) return 0;
-    
+
     return Math.abs(number) / number;
 }
 
@@ -45,27 +45,51 @@ const cloneObject = obj => Object.assign({}, obj)
 const defaultGameObjectProps = {
     name: null,
     scene: null,
-    x: 0, 
-    y: 0, 
-    z: 0, 
-    width: 10, 
-    height: 10, 
-    color: "#fff", 
-    alpha: 255, 
-    scale_x: 1, 
-    scale_y: 1,
-    rotation: 0, 
-    tags: [], 
-    gui: false, 
-    ignorePause: false, 
-    active: true, 
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 10,
+    height: 10,
+    color: "#fff",
+    alpha: 255,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
+    tags: [],
+    gui: false,
+    ignorePause: false,
+    active: true,
     visible: true,
+
+    image: {
+        src: '',
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+    },
+
+    text: {
+        value: '',
+        x: 0,
+        y: 0,
+        bold: false,
+        italic: false,
+        font: 'Arial',
+        fontSize: 16,
+        align: 'left',
+        baseline: 'top',
+        color: '#fff',
+        stroke: false,
+        strokeColor: '#000',
+        lineWidth: 1,
+    },
 }
 
 class GameObject {
     constructor(props) {
         this.id = crypto.randomUUID()
-        
+
         props = {
             ...defaultGameObjectProps,
             ...props
@@ -80,6 +104,26 @@ class GameObject {
         this.scene.game.ctx.fillStyle = this.color
 
         this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
+
+        if (this.image && this.image.src && this.image.src != '') {
+            const image = new Image()
+            image.onload = function() {
+                this.scene.game.ctx.drawImage(image, this.x + this.image.x, this.y + this.image.y, this.image.width, this.image.height)
+            }
+            image.src = this.image.src
+        }
+
+        if (this.text && this.text.value && this.text.value != '') {
+            this.scene.game.ctx.font = `${this.text.bold ? 'bold ' : ''}${this.text.italic ? 'italic ' : ''}${this.text.fontSize}px ${this.text.font}`;
+            this.scene.game.ctx.fillStyle = this.text.color;
+            this.scene.game.ctx.fillText(this.text.value, this.x + this.text.x, thix.y + this.text.y);
+
+            if (this.text.stroke) {
+                this.scene.game.ctx.strokeStyle = this.text.strokeColor;
+                this.scene.game.ctx.lineWidth = this.text.lineWidth;
+                this.scene.game.ctx.strokeText(this.text.value, this.x + this.text.x, this.y + this.text.y);
+            }
+        }
     }
 
     addTag(tag) {
@@ -92,7 +136,7 @@ class GameObject {
     hasTag(tag) {
         return this.tag.includes(tag)
     }
-        
+
     getTags() {
         return this.tags
     }
@@ -104,7 +148,7 @@ class GameObject {
 
     setSize(width, height) {
         this.width = width
-        this.height = height 
+        this.height = height
     }
 
     setVisible(visible = true) {
@@ -125,12 +169,12 @@ class GameObject {
 }
 
 const defaultCameraProps = {
-    game: null, 
-    x: 0, 
-    y: 0, 
-    delay: 1, 
-    zoom: 1.0, 
-    minZoom: 0.1, 
+    game: null,
+    x: 0,
+    y: 0,
+    delay: 1,
+    zoom: 1.0,
+    minZoom: 0.1,
     maxZoom: 3.0
 }
 
@@ -249,6 +293,7 @@ const defaultGameProps = {
     cursorStyle: 'default',
     fps: 60,
     events: ['click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseout', 'mouseover', 'change', 'focus', 'blur', 'select', 'keydown', 'keyup'],
+    imageSmoothingEnabled: true,
     contextMenu: false,
     running: false,
     fullScreen: false,
@@ -275,7 +320,7 @@ class Game {
             game: this,
             x: this.width/2,
             y: this.height/2
-        })  
+        })
 
         this.cv = props.canvas
         if(!this.cv) {
@@ -284,6 +329,8 @@ class Game {
             this.cv.setAttribute('class', props.class);
         }
         this.ctx = this.cv.getContext("2d");
+
+        this.ctx.imageSmoothingEnabled = props.imageSmoothingEnabled;
 
         if(!document.body.contains(this.cv)) document.body.appendChild(this.cv)
 
@@ -339,10 +386,12 @@ class Game {
     run() {
         this.lastTick = Date.now()
         this.deltaTime = 0
+        this.currentFPS = 0;
+        this.minFrameTime = 1000 / this.fps;
 
         const update = () => {
             const now = Date.now();
-            this.deltaTime = (now - this.lastTick)/1000;
+            this.deltaTime = (now - this.lastTick) / 1000;
             this.currentFPS = 1000 / (now - this.lastTick)
             this.lastTick = now
 
@@ -365,7 +414,7 @@ class Game {
                 if (gameObject.onUpdate && typeof gameObject.onUpdate === 'function' && !this.pause && gameObject.active) gameObject.onUpdate(gameObject)
                 if (gameObject.onRender && typeof gameObject.onRender === 'function' && gameObject.active && gameObject.visible) gameObject.onRender(gameObject)
                 if (gameObject.render && typeof gameObject.render === 'function' && gameObject.active && gameObject.visible) gameObject.render()
-                
+
                 Object.entries(gameObjects).forEach(([checkName, checkGameObject]) => {
                     if (gameObject.id !== checkGameObject.id) {
 
@@ -386,9 +435,20 @@ class Game {
             })
 
             this.ctx.restore()
+
+            const elapsedTime = now - this.lastTick;
+
+            if (elapsedTime >= this.minFrameTime) {
+                requestAnimationFrame(update);
+            } else {
+                setTimeout(() => {
+                    requestAnimationFrame(update);
+                }, this.minFrameTime - elapsedTime);
+            }
         }
 
-        this.updateInterval = setInterval(update, 1000/this.fps);
+        // this.updateInterval = setInterval(update, 1000/this.fps);
+        requestAnimationFrame(update);
     }
 
     stop() {
