@@ -1,6 +1,11 @@
 const Structure = {
-    color: 'black',
+    color: 'rgb(0, 0, 0)',
     tags: ['structure'],
+    down: false,
+    up: false,
+    left: false,
+    right: false,
+    directions: ['left', 'right', 'up', 'down'],
 
     width: 50,
     height: 50,
@@ -33,41 +38,44 @@ const MainScene = {
     },
 
     createStructure: current => {
-        const directions = ['left', 'right', 'up', 'down']
-        const direction = randomItemFromArray(directions)
-
         const mainRoom = current.getGameObjectByName('mainRoom')
+
+        const direction = randomItemFromArray(mainRoom.directions)
+
+        let newStructure = {
+            ...Structure,
+            width: randomIntInInterval(50, 250),
+            height: randomIntInInterval(50, 250),
+            // color: `rgb(${randomIntInInterval(0, 255)}, ${randomIntInInterval(0, 255)}, ${randomIntInInterval(0, 255)})`,
+        }
+
+        // console.log(newStructure);
+
+        // remove direction from mainRoom directions:
+        mainRoom.directions = mainRoom.directions.filter(d => d != direction)
 
         switch (direction) {
             case 'right':
                 current.instantGameObject({
-                    ...Structure,
-                    width: randomIntInInterval(50, 250),
-                    height: randomIntInInterval(50, 250),
+                    ...newStructure,
                     x: mainRoom.x + mainRoom.width,
                 })
                 break;
             case 'left':
                 current.instantGameObject({
-                    ...Structure,
-                    width: randomIntInInterval(50, 250),
-                    height: randomIntInInterval(50, 250),
+                    ...newStructure,
                     x: mainRoom.x - Structure.width,
                 })
                 break;
             case 'up':
                 current.instantGameObject({
-                    ...Structure,
-                    width: randomIntInInterval(50, 250),
-                    height: randomIntInInterval(50, 250),
+                    ...newStructure,
                     y: mainRoom.y - Structure.height,
                 })
                 break;
             case 'down':
                 current.instantGameObject({
-                    ...Structure,
-                    width: randomIntInInterval(50, 250),
-                    height: randomIntInInterval(50, 250),
+                    ...newStructure,
                     y: mainRoom.y + mainRoom.height,
                 })
                 break;
