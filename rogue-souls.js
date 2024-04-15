@@ -1,4 +1,4 @@
-const GRID_SIZE = 50
+const GRID_SIZE = 25
 
 const Slab = {
     color: 'transparent',
@@ -12,8 +12,63 @@ const Brick = {
     color: 'transparent',
     tags: ['brick'],
     image: {
-        src: 'brick.png'
+        src: '/assets/images/brick.png'
     },
+}
+
+const Player = {
+    color: 'transparent',
+    tags: ['player'],
+    x: 2 * GRID_SIZE,
+    y: 2 * GRID_SIZE,
+    z: 1,
+    width: GRID_SIZE,
+    height: GRID_SIZE,
+    image: {
+        src: '/assets/images/knight.png'
+    },
+
+    onUpdate: current => {
+        current.scene.game.camera.setTarget(current, 10)
+    },
+
+    onKeydown: ({event, current}) => {
+        if (event.key == 'w') {
+            const checkGameObject = current.scene.getGameObjectByPosition(current.x, current.y - GRID_SIZE)
+
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                return
+            }
+
+            current.y -= GRID_SIZE
+        } else if (event.key == 'a') {
+            const checkGameObject = current.scene.getGameObjectByPosition(current.x - GRID_SIZE, current.y)
+
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                return
+            }
+
+            current.image.flipX = true
+            current.x -= GRID_SIZE
+        } else if (event.key == 's') {
+            const checkGameObject = current.scene.getGameObjectByPosition(current.x, current.y + GRID_SIZE)
+
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                return
+            }
+
+            current.y += GRID_SIZE
+        } else if (event.key == 'd') {
+            const checkGameObject = current.scene.getGameObjectByPosition(current.x + GRID_SIZE, current.y)
+
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                return
+            }
+
+            current.image.flipX = false
+            current.x += GRID_SIZE
+        }
+    }
 }
 
 const Structure = {
@@ -25,7 +80,7 @@ const Structure = {
         current.scene.instantTileMap({
             x: current.x,
             y: current.y,
-            size: 50,
+            size: GRID_SIZE ,
             tiles: {
                 0: Slab,
                 1: Brick
@@ -36,7 +91,7 @@ const Structure = {
 }
 
 const MainScene = {
-    maxStructures: 20,
+    maxStructures: 5,
     structureIndex: 0,
 
     gameObjects: {
@@ -46,10 +101,11 @@ const MainScene = {
             height: GRID_SIZE * 10,
             structureIndex: 0,
         },
+        Player: Player
     },
 
     onLoad: current => {
-        current.game.camera.setZoom(0.125)
+        // current.game.camera.setZoom(0.375)
     },
 
     onUpdate: current => {
@@ -61,8 +117,7 @@ const MainScene = {
             current.createStructure(current, randomStructure)
         }
 
-        const mainRoom = current.getGameObjectByName('mainRoom')
-        current.game.camera.setTarget(mainRoom)
+        // console.log(current.game.currentFPS);
     },
 
     createStructure: (current, structure) => {
@@ -149,6 +204,7 @@ const game = new Game({
     backgroundColor: '#0f0f0f',
     fps: 60,
     title: 'Rogue Souls',
+    imageSmoothingEnabled: false,
 
     scenes: {
         main: MainScene

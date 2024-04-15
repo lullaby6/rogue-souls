@@ -54,8 +54,11 @@ const defaultGameObjectImageProps = {
     src: '',
     x: 0,
     y: 0,
+    z: 0,
     width: 0,
-    height: 0
+    height: 0,
+    flipX: false,
+    flipY: false,
 }
 
 const defaultGameObjectTextProps = {
@@ -139,7 +142,17 @@ class GameObject {
         this.scene.game.ctx.fillRect(this.x, this.y, this.width, this.height)
 
         if (this.imageCache) {
+            this.scene.game.ctx.save()
+            if (this.image.flipX) {
+                this.scene.game.ctx.translate((this.x * 2) + this.width, 0)
+                this.scene.game.ctx.scale(-1, 1)
+            }
+            if (this.image.flipY) {
+                this.scene.game.ctx.translate(0, (this.y * 2) + this.height)
+                this.scene.game.ctx.scale(1, -1)
+            }
             this.scene.game.ctx.drawImage(this.imageCache, this.x, this.y, this.width, this.height)
+            this.scene.game.ctx.restore()
         }
 
         if (this.text && this.text.value && this.text.value != '') {
@@ -219,9 +232,13 @@ class Camera {
         })
     }
 
-    setTarget(target) {
-        this.x += ((target.x + target.width/2) - this.x) / this.delay
-        this.y += ((target.y + target.height/2) - this.y) / this.delay
+    setTarget(target, delay = null) {
+        if (!delay) {
+            delay = this.delay
+        }
+
+        this.x += ((target.x + target.width/2) - this.x) / delay
+        this.y += ((target.y + target.height/2) - this.y) / delay
     }
 
     setPosition(x, y) {
@@ -287,11 +304,16 @@ class Scene {
     }
 
     sortGameObjectsByZ() {
+        const sortedGameObjects = Object.values(this.gameObjects).sort((a, b) => {
+            if (a.z < b.z) return -1
+            if (a.z > b.z) return 1
+            return 0
+        })
 
+        this.gameObjects = sortedGameObjects
     }
 
     addTileMap(name, tileMap) {
-        console.log(name, tileMap);
         tileMap.map.forEach((row, y) => {
             row.forEach((col, x) => {
                 this.instantGameObject({
@@ -325,6 +347,8 @@ class Scene {
 
         if (newGameObject['onLoad'] && typeof newGameObject['onLoad'] === 'function') newGameObject.onLoad(newGameObject)
 
+        this.sortGameObjectsByZ()
+
         return newGameObject
     }
 
@@ -342,6 +366,10 @@ class Scene {
 
     getGameObjectsByTag(tag) {
         return Object.values(this.gameObjects).filter(gameObject => gameObject.tags.includes(tag))
+    }
+
+    getGameObjectByPosition(x, y) {
+        return Object.values(this.gameObjects).find(gameObject => gameObject.x === x && gameObject.y === y)
     }
 
     getGameObjects(){
@@ -536,6 +564,8 @@ class Game {
             this.ctx.translate(this.width/2, this.height/2)
             this.ctx.scale(this.camera.zoom, this.camera.zoom);
             this.ctx.translate(-(this.camera.x), -(this.camera.y))
+
+            this.ctx.imageSmoothingEnabled = this.imageSmoothingEnabled
 
             if (this.onUpdate && typeof this.onUpdate === 'function' && !this.pause) this.onUpdate(this)
             if (this.onRender && typeof this.onRender === 'function') this.onRender(this)
