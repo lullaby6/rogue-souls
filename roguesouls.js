@@ -1,87 +1,107 @@
 const Structure = {
     color: 'rgb(0, 0, 0)',
-    tags: ['structure'],
-    down: false,
-    up: false,
-    left: false,
-    right: false,
-    directions: ['left', 'right', 'up', 'down'],
-
     width: 50,
     height: 50,
+    tags: ['structure'],
+    directions: ['left', 'right', 'up', 'down'],
 
-    onLoad: current => {
-        current.width = randomIntInInterval(50, 250)
-        current.height = randomIntInInterval(50, 250)
+    onCollide({current, target}) {
+        if (current.parentStructure && current.parentStructure != target.name && current.name != target.parentStructure) {
+            console.log('collide :(', current.parentStructure, target.name);
+            current.color = 'red'
+        }
+    },
+
+    onClick: ({current}) => {
+        console.log(current.id);
+        // current.color = 'red'
     }
 }
 
 const MainScene = {
-    rooms: 10,
+    maxStructures: 20,
 
     gameObjects: {
-        mainRoom: Structure
+        mainRoom: {
+            ...Structure,
+            width: randomIntFromInterval(50, 150),
+            height: randomIntFromInterval(50, 150)
+        }
     },
 
     onLoad: current => {
-        const mainRoom = current.getGameObjectByName('mainRoom')
-
-        current.createStructure(current)
+        current.game.camera.setZoom(1)
     },
 
     onUpdate: current => {
-        current.game.camera.setTarget(0, 0)
+        const structures = current.getGameObjectsByTag('structure')
+
+        if (structures.length < current.maxStructures) {
+            const randomStructure = randomItemFromArray(structures)
+
+            current.createStructure(current, randomStructure)
+        }
+
+        const mainRoom = current.getGameObjectByName('mainRoom')
+        current.game.camera.setTarget(mainRoom)
     },
 
     onKeydown: ({event, current}) => {
         
     },
 
-    createStructure: current => {
-        const mainRoom = current.getGameObjectByName('mainRoom')
+    createStructure: (current, structure) => {
+        const direction = randomItemFromArray(structure.directions)
 
-        const direction = randomItemFromArray(mainRoom.directions)
+        structure.directions = structure.directions.filter(d => d != direction)
 
         let newStructure = {
             ...Structure,
-            width: randomIntInInterval(50, 250),
-            height: randomIntInInterval(50, 250),
-            // color: `rgb(${randomIntInInterval(0, 255)}, ${randomIntInInterval(0, 255)}, ${randomIntInInterval(0, 255)})`,
+            parentStructure: structure.name,    
+            x: structure.x,
+            y: structure.y,
+            color: `rgb(${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)}, ${randomIntFromInterval(0, 255)})`,
         }
 
-        // console.log(newStructure);
-
-        // remove direction from mainRoom directions:
-        mainRoom.directions = mainRoom.directions.filter(d => d != direction)
+        newStructure.width = randomIntFromInterval(50, 150)
+        newStructure.height = randomIntFromInterval(50, 150)
 
         switch (direction) {
             case 'right':
-                current.instantGameObject({
-                    ...newStructure,
-                    x: mainRoom.x + mainRoom.width,
-                })
+                newStructure.x = structure.x + structure.width
+                newStructure.directions = newStructure.directions.filter(d => d != 'left')
                 break;
             case 'left':
-                current.instantGameObject({
-                    ...newStructure,
-                    x: mainRoom.x - Structure.width,
-                })
+                newStructure.x = structure.x - newStructure.width
+                newStructure.directions = newStructure.directions.filter(d => d != 'right')
                 break;
             case 'up':
-                current.instantGameObject({
-                    ...newStructure,
-                    y: mainRoom.y - Structure.height,
-                })
+                newStructure.y = structure.y - newStructure.height
+                newStructure.directions = newStructure.directions.filter(d => d != 'down')
                 break;
             case 'down':
-                current.instantGameObject({
-                    ...newStructure,
-                    y: mainRoom.y + mainRoom.height,
-                })
+                newStructure.y = structure.y + structure.height
+                newStructure.directions = newStructure.directions.filter(d => d != 'up')
                 break;
             default:
                 break;
         }
+
+        const structures = current.getGameObjectsByTag('structure')
+
+        let collide = false
+
+        Object.entries(structures).forEach(([name, checkStructure]) => {
+            if (checkStructure.name != newStructure.parentStructure) {
+                if (isCollide(newStructure, checkStructure)) {
+                    collide = true
+                }
+            }
+        })
+
+        if (collide) return
+
+        current.instantGameObject(newStructure)
     }
 }
 
