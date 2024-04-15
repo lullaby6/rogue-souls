@@ -1,4 +1,5 @@
 const GRID_SIZE = 25
+const MAX_STRUCTURES = 12
 
 const Slab = {
     color: 'transparent',
@@ -36,36 +37,60 @@ const Player = {
         if (current.scene.game.pause) return
 
         if (event.key == 'w') {
-            const checkGameObject = current.scene.getGameObjectByPosition(current.x, current.y - GRID_SIZE)
+            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y - GRID_SIZE)
 
-            if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                return
-            }
+            let wall = false
+
+            checkGameObjects.forEach(checkGameObject => {
+                if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                    wall = true
+                }
+            })
+
+            if (wall) return
 
             current.y -= GRID_SIZE
         } else if (event.key == 'a') {
-            const checkGameObject = current.scene.getGameObjectByPosition(current.x - GRID_SIZE, current.y)
+            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x - GRID_SIZE, current.y)
 
-            if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                return
-            }
+            let wall = false
+
+            checkGameObjects.forEach(checkGameObject => {
+                if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                    wall = true
+                }
+            })
+
+            if (wall) return
 
             current.image.flipX = true
             current.x -= GRID_SIZE
         } else if (event.key == 's') {
-            const checkGameObject = current.scene.getGameObjectByPosition(current.x, current.y + GRID_SIZE)
+            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y + GRID_SIZE)
 
-            if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                return
-            }
+            let wall = false
+
+            checkGameObjects.forEach(checkGameObject => {
+                if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                    wall = true
+                }
+            })
+
+            if (wall) return
 
             current.y += GRID_SIZE
         } else if (event.key == 'd') {
-            const checkGameObject = current.scene.getGameObjectByPosition(current.x + GRID_SIZE, current.y)
+            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x + GRID_SIZE, current.y)
 
-            if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                return
-            }
+            let wall = false
+
+            checkGameObjects.forEach(checkGameObject => {
+                if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                    wall = true
+                }
+            })
+
+            if (wall) return
 
             current.image.flipX = false
             current.x += GRID_SIZE
@@ -78,10 +103,18 @@ const Structure = {
     tags: ['structure'],
     directions: ['left', 'right', 'up', 'down'],
 
+    image: {
+        src: './images/25x_slab.png',
+        pattern: true,
+    },
+
+    onLoad: current => {
+        // current.image.width = current.width
+    },
+
     loadTileMaps: current => {
         const map = current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
-        console.log(map);
         if (!current.directions.includes('up')) {
             map[0][1] = 0
             map[0][2] = 0
@@ -107,16 +140,18 @@ const Structure = {
             y: current.y,
             size: GRID_SIZE ,
             tiles: {
-                0: Slab,
+                0: null,
                 1: Brick
             },
             map,
         })
+
+        // current.scene.removeGameObjectByName(current.name)
     },
 }
 
 const MainScene = {
-    maxStructures: 10,
+    maxStructures: MAX_STRUCTURES,
     structureIndex: 0,
     tileMapsLoaded: false,
 
@@ -131,21 +166,25 @@ const MainScene = {
     },
 
     onUpdate: current => {
+        if (!current.tileMapsLoaded) current.generateStructures(current)
+
+        // console.log(Object.keys(current.gameObjects).length, current.game.currentFPS);
+    },
+
+    generateStructures: (current) => {
         const structures = current.getGameObjectsByTag('structure')
 
         if (structures.length < current.maxStructures) {
             const randomStructure = randomItemFromArray(structures)
 
             current.createStructure(current, randomStructure)
-        } else if (!current.tileMapsLoaded) {
+        } else {
             current.tileMapsLoaded = true
 
             structures.forEach(structure => {
                 structure.loadTileMaps(structure)
             })
         }
-
-        console.log(current.game.currentFPS);
     },
 
     createStructure: (current, structure) => {
@@ -230,10 +269,9 @@ const MainScene = {
 
 const game = new Game({
     backgroundColor: '#0f0f0f',
-    fps: 60,
     title: 'Rogue Souls',
     imageSmoothingEnabled: false,
-    cursor: false,
+    // cursor: false,
 
     scenes: {
         main: MainScene

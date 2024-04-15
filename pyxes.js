@@ -59,6 +59,7 @@ const defaultGameObjectImageProps = {
     height: 0,
     flipX: false,
     flipY: false,
+    pattern: false,
 }
 
 const defaultGameObjectTextProps = {
@@ -97,7 +98,12 @@ const defaultGameObjectProps = {
     visible: true,
     dontRenderIfNotVisible: true,
     dontUpdateIfNotVisible: false,
+    checkCollision: true,
+    checkInside: true,
+    checkPositionsMatch: true,
+    mouseOver: false,
     image: defaultGameObjectImageProps,
+    imageCache: null,
     text: defaultGameObjectTextProps,
 }
 
@@ -124,27 +130,22 @@ class GameObject {
             this[key] = value
         })
 
-        this.mouseOver = false
+        if (!this.imageCache && this.image && this.image.src && this.image.src != '') {
+            this.loadImageCache()
+        }
+    }
 
-        this.imageCache = null
-
-        if (this.image && this.image.src && this.image.src != '') {
-            const image = new Image()
-            image.src = this.image.src
-            const gameObject = this
-            image.onload = function() {
-                gameObject.imageCache = image
-            }
+    loadImageCache() {
+        const image = new Image()
+        image.src = this.image.src
+        const gameObject = this
+        image.onload = function() {
+            gameObject.imageCache = image
         }
     }
 
     render() {
-        if (
-            this.dontRenderIfNotVisible &&
-            !this.isVisible()
-        ) {
-            return
-        }
+        if (this.dontRenderIfNotVisible && !this.isVisible()) return
 
         this.scene.game.ctx.fillStyle = this.color
 
@@ -160,8 +161,16 @@ class GameObject {
                 this.scene.game.ctx.translate(0, (this.y * 2) + this.height)
                 this.scene.game.ctx.scale(1, -1)
             }
-            this.scene.game.ctx.drawImage(this.imageCache, this.x + this.image.x, this.y + this.image.y, this.width, this.height)
+            if (this.image.pattern) {
+                if (!this.imagePattern) this.imagePattern = this.scene.game.ctx.createPattern(this.imageCache, "repeat");
+                this.scene.game.ctx.fillStyle = this.imagePattern;
+                this.scene.game.ctx.fillRect(this.x + this.image.x, this.y + this.image.y, this.width + this.image.width, this.height + this.image.height);
+            } else {
+                this.scene.game.ctx.drawImage(this.imageCache, this.x + this.image.x, this.y + this.image.y, this.width + this.image.width, this.height + this.image.height)
+            }
             this.scene.game.ctx.restore()
+        } else {
+            this.loadImageCache()
         }
 
         if (this.text && this.text.value && this.text.value != '') {
@@ -175,6 +184,12 @@ class GameObject {
                 this.scene.game.ctx.strokeText(this.text.value, this.x + this.text.x, this.y + this.text.y + this.text.fontSize);
             }
         }
+    }
+
+    setImageSource(src) {
+        this.imageCache = null
+        this.image.src = src
+        this.loadImageCache()
     }
 
     addTag(tag) {
@@ -328,20 +343,30 @@ class Scene {
             return 0
         })
 
-        this.gameObjects = sortedGameObjects
+        const indexedSortedGameObjects = sortedGameObjects.reduce((obj, gameObject) => {
+            obj[gameObject.name] = gameObject;
+            return obj;
+        }, {});
+
+        this.gameObjects = indexedSortedGameObjects
     }
 
     addTileMap(name, tileMap) {
         tileMap.map.forEach((row, y) => {
-            row.forEach((col, x) => {
-                this.instantGameObject({
-                    ...tileMap.tiles[tileMap.map[y][x]],
-                    x: tileMap.x + x * tileMap.size,
-                    y: tileMap.y + y * tileMap.size,
-                    width: tileMap.size,
-                    height: tileMap.size,
-                    tileMap: name
-                })
+            row.forEach((_, x) => {
+                const tile = tileMap.tiles[tileMap.map[y][x]]
+
+                if (tile) {
+                    this.instantGameObject({
+                        ...tile,
+                        x: tileMap.x + x * tileMap.size,
+                        y: tileMap.y + y * tileMap.size,
+                        width: tileMap.size,
+                        height: tileMap.size,
+                        tileMap: name
+                    })
+                }
+
             })
         })
     }
@@ -418,6 +443,7 @@ const defaultGameProps = {
     cursor: true,
     cursorStyle: 'default',
     fps: 60,
+    limitFPS: false,
     events: ['click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseenter', 'mouseleave', 'mouseout', 'mouseover', 'change', 'focus', 'blur', 'select', 'keydown', 'keyup'],
     imageSmoothingEnabled: true,
     contextMenu: false,
@@ -479,8 +505,10 @@ class Game {
             const activeScene = this.getActiveScene()
             const gameObjects = activeScene.getGameObjects()
 
-            Object.entries(gameObjects).forEach(([name, gameObject]) => {
-                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject)) {
+            Object.values(gameObjects).forEach((gameObject) => {
+                const inside = isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: gameObject.width, height: gameObject.height}, gameObject)
+
+                if (inside) {
                     if (gameObject.mouseOver == false) {
                         gameObject.mouseOver = true
                         if (gameObject.onCurrentMouseEnter && typeof gameObject.onCurrentMouseEnter === 'function') gameObject.onCurrentMouseEnter({event, current: gameObject})
@@ -499,8 +527,8 @@ class Game {
             const activeScene = this.getActiveScene()
             const gameObjects = activeScene.getGameObjects()
 
-            Object.entries(gameObjects).forEach(([name, gameObject]) => {
-                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentClick && typeof gameObject.onCurrentClick === 'function') gameObject.onCurrentClick({event, current: gameObject})
+            Object.values(gameObjects).forEach((gameObject) => {
+                if (gameObject.onCurrentClick && typeof gameObject.onCurrentClick === 'function'&& isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject)) gameObject.onCurrentClick({event, current: gameObject})
             })
         })
 
@@ -511,8 +539,8 @@ class Game {
             const activeScene = this.getActiveScene()
             const gameObjects = activeScene.getGameObjects()
 
-            Object.entries(gameObjects).forEach(([name, gameObject]) => {
-                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentMousedown && typeof gameObject.onCurrentMousedown === 'function') gameObject.onCurrentMousedown({event, current: gameObject})
+            Object.values(gameObjects).forEach((gameObject) => {
+                if (gameObject.onCurrentMousedown && typeof gameObject.onCurrentMousedown === 'function' && isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject)) gameObject.onCurrentMousedown({event, current: gameObject})
             })
         })
 
@@ -523,8 +551,8 @@ class Game {
             const activeScene = this.getActiveScene()
             const gameObjects = activeScene.getGameObjects()
 
-            Object.entries(gameObjects).forEach(([name, gameObject]) => {
-                if (isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject) && gameObject.onCurrentMouseup && typeof gameObject.onCurrentMouseup === 'function') gameObject.onCurrentMouseup({event, current: gameObject})
+            Object.values(gameObjects).forEach((gameObject) => {
+                if (gameObject.onCurrentMouseup && typeof gameObject.onCurrentMouseup === 'function' && isInside({x: this.mousePosition.x, y: this.mousePosition.y, width: 1, height: 1}, gameObject)) gameObject.onCurrentMouseup({event, current: gameObject})
             })
         })
 
@@ -539,7 +567,7 @@ class Game {
                 if (activeScene && activeScene[methodEventName] && typeof activeScene[methodEventName] === 'function') activeScene[methodEventName]({event, current: activeScene})
 
                 const gameObjects = activeScene.getGameObjects()
-                Object.entries(gameObjects).forEach(([name, gameObject]) => {
+                Object.values(gameObjects).forEach((gameObject) => {
                     if (gameObject[methodEventName] && typeof gameObject[methodEventName] === 'function') gameObject[methodEventName]({event, current: gameObject})
                 })
             })
@@ -574,6 +602,8 @@ class Game {
         this.currentFPS = 0;
         this.minFrameTime = 1000 / this.fps;
 
+        this.ctx.imageSmoothingEnabled = this.imageSmoothingEnabled
+
         const update = () => {
             const now = Date.now();
             this.deltaTime = (now - this.lastTick) / 1000;
@@ -587,8 +617,6 @@ class Game {
             this.ctx.scale(this.camera.zoom, this.camera.zoom);
             this.ctx.translate(-(this.camera.x), -(this.camera.y))
 
-            this.ctx.imageSmoothingEnabled = this.imageSmoothingEnabled
-
             if (this.onUpdate && typeof this.onUpdate === 'function' && !this.pause) this.onUpdate(this)
             if (this.onRender && typeof this.onRender === 'function') this.onRender(this)
 
@@ -597,44 +625,41 @@ class Game {
             if (activeScene.onRender && typeof activeScene.onRender === 'function') activeScene.onRender(activeScene)
 
             const gameObjects = activeScene.getGameObjects()
-            Object.entries(gameObjects).forEach(([name, gameObject]) => {
+            Object.values(gameObjects).forEach((gameObject) => {
                 if (gameObject.onUpdate && typeof gameObject.onUpdate === 'function' && !this.pause && gameObject.active) gameObject.onUpdate(gameObject)
                 if (gameObject.onRender && typeof gameObject.onRender === 'function' && gameObject.active && gameObject.visible) gameObject.onRender(gameObject)
                 if (gameObject.render && typeof gameObject.render === 'function' && gameObject.active && gameObject.visible) gameObject.render()
 
-                Object.entries(gameObjects).forEach(([checkName, checkGameObject]) => {
+                Object.values(gameObjects).forEach((checkGameObject) => {
                     if (gameObject.id !== checkGameObject.id) {
-
-                        if (isCollide(gameObject, checkGameObject) && gameObject.onCollide && typeof gameObject.onCollide === 'function') {
+                        if (gameObject.onCollide && typeof gameObject.onCollide === 'function' && isCollide(gameObject, checkGameObject)) {
                             gameObject.onCollide({current: gameObject, target: checkGameObject})
                         }
 
-                        if (positionsMatch(gameObject, checkGameObject) && gameObject.onPositionMatch && typeof gameObject.onPositionMatch === 'function'){
+                        if (gameObject.onPositionMatch && typeof gameObject.onPositionMatch === 'function' && positionsMatch(gameObject, checkGameObject)) {
                             gameObject.onPositionMatch({current: gameObject, target: checkGameObject})
                         }
 
-                        if (isInside(gameObject, checkGameObject)  && gameObject.onInside && typeof gameObject.onInside === 'function'){
+                        if (gameObject.onInside && typeof gameObject.onInside === 'function' && isInside(gameObject, checkGameObject)) {
                             gameObject.onInside({current: gameObject, target: checkGameObject})
                         }
-
                     }
                 })
             })
 
             this.ctx.restore()
 
+            if (!this.limitFPS) return requestAnimationFrame(update);
+
             const elapsedTime = now - this.lastTick;
 
-            if (elapsedTime >= this.minFrameTime) {
+            const nextTick = Math.max(this.minFrameTime - elapsedTime, 0);
+
+            setTimeout(() => {
                 requestAnimationFrame(update);
-            } else {
-                setTimeout(() => {
-                    requestAnimationFrame(update);
-                }, this.minFrameTime - elapsedTime);
-            }
+            }, nextTick);
         }
 
-        // this.updateInterval = setInterval(update, 1000/this.fps);
         requestAnimationFrame(update);
     }
 
@@ -714,7 +739,7 @@ class Game {
         this.cv.style.backgroundColor = backgroundColor
     }
 
-    setCursorStyle(cursor = "default"){
+    setCursorStyle(cursor = "default") {
         this.cursorStyle = cursor
         this.cv.style.cursor = cursor
     }
@@ -745,7 +770,7 @@ class Game {
         this.cv.removeEventListener('contextmenu', this.disableContextMenu)
     }
 
-    screenshot(){
+    screenshot() {
         return this.cv.toDataURL('image/png')
     }
 
@@ -758,7 +783,7 @@ class Game {
         document.body.removeChild(a)
     }
 
-    setFPS(fps){
+    setFPS(fps) {
         clearInterval(this.updateInterval)
         this.fps = fps
         this.updateListener()
