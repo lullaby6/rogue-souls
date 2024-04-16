@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 2
+const ROOMS = 3
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -461,7 +461,8 @@ const MainScene = {
 
     createRoom: (current, room) => {
         let directions = ['left', 'right', 'up', 'down']
-        directions = ['right', 'left']
+        directions = ['left', 'right']
+        // directions = ['right']
 
         directions.forEach(direction =>{
             if (room[direction] != null) {
@@ -492,8 +493,8 @@ const MainScene = {
             case 'right':
                 newRoom.x += room.width
 
-                const rightOffsetY = ((randomIntFromInterval(-((newRoom.height / GRID_SIZE) - 4), ((room.height / GRID_SIZE) - 4))) * GRID_SIZE)
-                newRoom.y += rightOffsetY
+                const roomRightOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
+                newRoom.y += roomRightOffsetY * GRID_SIZE
 
                 const roomOffsetRightStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
                 const roomOffsetRightEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
@@ -502,20 +503,17 @@ const MainScene = {
 
                 roomOffset.right = roomOffsetRight
 
-                newRoom.left = 0
-
                 if (newRoom.y <= room.y) {
                     newRoom.left = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetRight, 0)
                 } else {
-                    newRoom.left = Math.max((Math.min((roomOffsetRight - ((newRoom.y - room.y) / GRID_SIZE)), (room.height / GRID_SIZE) - 4) ), 0)
-                    console.log(newRoom.left);
+                    newRoom.left = Math.max(Math.min(roomOffsetRight - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
                 }
                 break;
             case 'left':
                 newRoom.x -= newRoom.width
 
-                const leftOffsetY = ((randomIntFromInterval(-((newRoom.height / GRID_SIZE) - 4), ((room.height / GRID_SIZE) - 4))) * GRID_SIZE)
-                newRoom.y += leftOffsetY
+                const roomLeftOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
+                newRoom.y += roomLeftOffsetY * GRID_SIZE
 
                 const roomOffsetLeftStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
                 const roomOffsetLeftEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
@@ -524,22 +522,23 @@ const MainScene = {
 
                 roomOffset.left = roomOffsetLeft
 
-                newRoom.right = 0
                 if (newRoom.y <= room.y) {
                     newRoom.right = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetLeft, 0)
                 } else {
-                    newRoom.right = Math.max((Math.min((roomOffsetLeft - ((newRoom.y - room.y) / GRID_SIZE)), (room.height / GRID_SIZE) - 4) ), 0)
+                    newRoom.right = Math.max(Math.min(roomOffsetLeft - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
                 }
                 break;
             case 'up':
                 newRoom.y -= newRoom.height
 
                 newRoom.down = 0
+                roomOffset.up = 0
                 break;
             case 'down':
                 newRoom.y += room.height
 
                 newRoom.up = 0
+                roomOffset.down = 0
                 break;
             default:
                 break;
@@ -550,10 +549,8 @@ const MainScene = {
         let collide = false
 
         Object.entries(structures).values((structure) => {
-            if (structure.name != newRoom.parentStructure) {
-                if (isCollide(newRoom, structure)) {
-                    collide = true
-                }
+            if (isCollide(newRoom, structure)) {
+                collide = true
             }
         })
 
