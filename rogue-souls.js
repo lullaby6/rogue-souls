@@ -357,7 +357,10 @@ const Room = {
     ...Structure,
     tags: ['structure', 'room'],
 
-    directions: ['left', 'right', 'up', 'down'],
+    left: null,
+    right: null,
+    up: null,
+    down: null,
 
     generateMap: (rows, cols) => {
         const map = []
@@ -382,24 +385,24 @@ const Room = {
     loadTileMap: current => {
         const map = current.generateMap(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
-        if (!current.directions.includes('up')) {
+        if (current.up != null) {
             map[0][1] = 0
             map[0][2] = 0
         }
 
-        if (!current.directions.includes('down')) {
+        if (current.down != null) {
             map[map.length - 1][1] = 0
             map[map.length - 1][2] = 0
         }
 
-        if (!current.directions.includes('left')) {
-            map[1][0] = 0
-            map[2][0] = 0
+        if (current.left != null) {
+            map[current.left + 1][0] = 0
+            map[current.left + 2][0] = 0
         }
 
-        if (!current.directions.includes('right')) {
-            map[1][map[0].length - 1] = 0
-            map[2][map[0].length - 1] = 0
+        if (current.right != null) {
+            map[current.right + 1][map[0].length - 1] = 0
+            map[current.right + 2][map[0].length - 1] = 0
         }
 
         current.scene.instantTileMap({
@@ -457,7 +460,16 @@ const MainScene = {
     },
 
     createRoom: (current, room) => {
-        const direction = randomItemFromArray(room.directions)
+        let directions = ['left', 'right', 'up', 'down']
+        directions = ['right', 'left']
+
+        directions.forEach(direction =>{
+            if (room[direction] != null) {
+                directions = directions.filter(d => d != direction)
+            }
+        })
+
+        const direction = randomItemFromArray(directions)
 
         let newRoom = {
             ...Room,
@@ -469,34 +481,77 @@ const MainScene = {
         newRoom.width = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
         newRoom.height = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
 
+        let roomOffset = {
+            left: null,
+            right: null,
+            up: null,
+            down: null,
+        }
+
         switch (direction) {
             case 'right':
-                newRoom.x = room.x + room.width
-                newRoom.directions = newRoom.directions.filter(d => d != 'left')
+                newRoom.x += room.width
+
+                const rightOffsetY = ((randomIntFromInterval(-((newRoom.height / GRID_SIZE) - 4), ((room.height / GRID_SIZE) - 4))) * GRID_SIZE)
+                newRoom.y += rightOffsetY
+
+                const roomOffsetRightStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
+                const roomOffsetRightEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
+
+                const roomOffsetRight = randomIntFromInterval(roomOffsetRightStartRange, roomOffsetRightEndRange)
+
+                roomOffset.right = roomOffsetRight
+
+                newRoom.left = 0
+
+                if (newRoom.y <= room.y) {
+                    newRoom.left = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetRight, 0)
+                } else {
+                    newRoom.left = Math.max((Math.min((roomOffsetRight - ((newRoom.y - room.y) / GRID_SIZE)), (room.height / GRID_SIZE) - 4) ), 0)
+                    console.log(newRoom.left);
+                }
                 break;
             case 'left':
-                newRoom.x = room.x - newRoom.width
-                newRoom.directions = newRoom.directions.filter(d => d != 'right')
+                newRoom.x -= newRoom.width
+
+                const leftOffsetY = ((randomIntFromInterval(-((newRoom.height / GRID_SIZE) - 4), ((room.height / GRID_SIZE) - 4))) * GRID_SIZE)
+                newRoom.y += leftOffsetY
+
+                const roomOffsetLeftStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
+                const roomOffsetLeftEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
+
+                const roomOffsetLeft = randomIntFromInterval(roomOffsetLeftStartRange, roomOffsetLeftEndRange)
+
+                roomOffset.left = roomOffsetLeft
+
+                newRoom.right = 0
+                if (newRoom.y <= room.y) {
+                    newRoom.right = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetLeft, 0)
+                } else {
+                    newRoom.right = Math.max((Math.min((roomOffsetLeft - ((newRoom.y - room.y) / GRID_SIZE)), (room.height / GRID_SIZE) - 4) ), 0)
+                }
                 break;
             case 'up':
-                newRoom.y = room.y - newRoom.height
-                newRoom.directions = newRoom.directions.filter(d => d != 'down')
+                newRoom.y -= newRoom.height
+
+                newRoom.down = 0
                 break;
             case 'down':
-                newRoom.y = room.y + room.height
-                newRoom.directions = newRoom.directions.filter(d => d != 'up')
+                newRoom.y += room.height
+
+                newRoom.up = 0
                 break;
             default:
                 break;
         }
 
-        const rooms = current.getGameObjectsByTag('structure')
+        const structures = current.getGameObjectsByTag('structure')
 
         let collide = false
 
-        Object.entries(rooms).values((checkRoom) => {
-            if (checkRoom.name != newRoom.parentStructure) {
-                if (isCollide(newRoom, checkRoom)) {
+        Object.entries(structures).values((structure) => {
+            if (structure.name != newRoom.parentStructure) {
+                if (isCollide(newRoom, structure)) {
                     collide = true
                 }
             }
@@ -504,7 +559,7 @@ const MainScene = {
 
         if (collide) return
 
-        room.directions = room.directions.filter(d => d != direction)
+        room[direction] = roomOffset[direction]
 
         current.instantGameObject(newRoom)
     },
