@@ -1,7 +1,9 @@
 const GRID_SIZE = 32
-const STRUCTURES = 12
-const MIN_STRUCTURE_SIZE = 6
-const MAX_STRUCTURE_SIZE = 20
+const ROOMS = 2
+const MAX_PATH_WIDTH = 4
+const MAX_PATH_LENGTH = 10
+const MIN_ROOM_SIZE = 10
+const MAX_ROOM_SIZE = 20
 
 const Slab = {
     color: 'transparent',
@@ -290,15 +292,95 @@ const Player = {
 const Structure = {
     color: 'transparent',
     tags: ['structure'],
-    directions: ['left', 'right', 'up', 'down'],
 
     image: {
         src: './images/32x_slab.png',
         pattern: true,
     },
+}
 
-    loadTileMaps: current => {
-        const map = current.scene.generateMapRoom(current.height/GRID_SIZE, current.width/GRID_SIZE)
+const Path = {
+    ...Structure,
+    tags: ['structure', 'path'],
+
+    generateMap: (rows, cols) => {
+        const map = []
+
+        for (let row_i = 0; row_i < rows; row_i++) {
+            const row = []
+
+            for (let col_i = 0; col_i < cols; col_i++) {
+                if (row_i == 0 || row_i == rows - 1 || col_i == 0 || col_i == cols - 1) {
+                    row.push(1)
+                } else {
+                    row.push(0)
+                }
+            }
+
+            map.push(row)
+        }
+
+        return map
+    },
+
+    loadTileMap: current => {
+        const map = current.generateMap(current.height/GRID_SIZE, current.width/GRID_SIZE)
+
+        if (current.direction && current.direction == 'y') {
+            map[0][1] = 0
+            map[0][2] = 0
+            map[map.length - 1][1] = 0
+            map[map.length - 1][2] = 0
+        }
+
+        if (current.direction && current.direction == 'x') {
+            map[1][0] = 0
+            map[2][0] = 0
+            map[1][map[0].length - 1] = 0
+            map[2][map[0].length - 1] = 0
+        }
+
+        current.scene.instantTileMap({
+            x: current.x,
+            y: current.y,
+            size: GRID_SIZE ,
+            tiles: {
+                0: null,
+                1: Brick
+            },
+            map,
+        })
+    },
+}
+
+const Room = {
+    ...Structure,
+    tags: ['structure', 'room'],
+
+    directions: ['left', 'right', 'up', 'down'],
+
+    generateMap: (rows, cols) => {
+        const map = []
+
+        for (let row_i = 0; row_i < rows; row_i++) {
+            const row = []
+
+            for (let col_i = 0; col_i < cols; col_i++) {
+                if (row_i == 0 || row_i == rows - 1 || col_i == 0 || col_i == cols - 1) {
+                    row.push(1)
+                } else {
+                    row.push(0)
+                }
+            }
+
+            map.push(row)
+        }
+
+        return map
+    },
+
+    loadTileMap: current => {
+        const map = current.generateMap(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
         if (!current.directions.includes('up')) {
             map[0][1] = 0
@@ -330,128 +412,102 @@ const Structure = {
             },
             map,
         })
-
-        // current.scene.removeGameObjectByName(current.name)
     },
 }
 
 const MainScene = {
-    maxStructures: STRUCTURES,
-    structureIndex: 0,
+    maxRooms: ROOMS,
     tileMapsLoaded: false,
 
     gameObjects: {
         mainRoom: {
-            ...Structure,
-            width: GRID_SIZE * 10,
-            height: GRID_SIZE * 10,
-            structureIndex: 0,
+            ...Room,
+            width: GRID_SIZE * 15,
+            height: GRID_SIZE * 15,
         },
-        Player: Player
+        Player: {
+            ...Player,
+            x: 7 * GRID_SIZE,
+            y: 7 * GRID_SIZE,
+        }
     },
 
     onUpdate: current => {
-        if (!current.tileMapsLoaded) current.generateStructures(current)
+        if (!current.tileMapsLoaded) current.generateRooms(current)
 
         // console.log(Object.keys(current.gameObjects).length, current.game.currentFPS);
     },
 
-    generateStructures: (current) => {
-        const structures = current.getGameObjectsByTag('structure')
+    generateRooms: (current) => {
+        const rooms = current.getGameObjectsByTag('room')
 
-        if (structures.length < current.maxStructures) {
-            const randomStructure = randomItemFromArray(structures)
+        if (rooms.length < current.maxRooms) {
+            const randomRoom = randomItemFromArray(rooms)
 
-            current.createStructure(current, randomStructure)
+            current.createRoom(current, randomRoom)
         } else {
             current.tileMapsLoaded = true
 
-            structures.forEach(structure => {
-                structure.loadTileMaps(structure)
+            rooms.forEach(room => {
+                room.loadTileMap(room)
             })
 
             current.instantGameObject(Skeleton)
         }
     },
 
-    createStructure: (current, structure) => {
-        const direction = randomItemFromArray(structure.directions)
+    createRoom: (current, room) => {
+        const direction = randomItemFromArray(room.directions)
 
-        current.structureIndex += 1
-
-        let newStructure = {
-            ...Structure,
-            parentStructure: structure.name,
-            x: structure.x,
-            y: structure.y,
-            structureIndex: current.structureIndex
+        let newRoom = {
+            ...Room,
+            parentStructure: room.name,
+            x: room.x,
+            y: room.y,
         }
 
-        newStructure.width = GRID_SIZE * randomIntFromInterval(MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE)
-        newStructure.height = GRID_SIZE * randomIntFromInterval(MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE)
+        newRoom.width = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
+        newRoom.height = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
 
         switch (direction) {
             case 'right':
-                newStructure.x = structure.x + structure.width
-                newStructure.directions = newStructure.directions.filter(d => d != 'left')
+                newRoom.x = room.x + room.width
+                newRoom.directions = newRoom.directions.filter(d => d != 'left')
                 break;
             case 'left':
-                newStructure.x = structure.x - newStructure.width
-                newStructure.directions = newStructure.directions.filter(d => d != 'right')
+                newRoom.x = room.x - newRoom.width
+                newRoom.directions = newRoom.directions.filter(d => d != 'right')
                 break;
             case 'up':
-                newStructure.y = structure.y - newStructure.height
-                newStructure.directions = newStructure.directions.filter(d => d != 'down')
+                newRoom.y = room.y - newRoom.height
+                newRoom.directions = newRoom.directions.filter(d => d != 'down')
                 break;
             case 'down':
-                newStructure.y = structure.y + structure.height
-                newStructure.directions = newStructure.directions.filter(d => d != 'up')
+                newRoom.y = room.y + room.height
+                newRoom.directions = newRoom.directions.filter(d => d != 'up')
                 break;
             default:
                 break;
         }
 
-        const structures = current.getGameObjectsByTag('structure')
+        const rooms = current.getGameObjectsByTag('structure')
 
         let collide = false
 
-        Object.entries(structures).forEach(([name, checkStructure]) => {
-            if (checkStructure.name != newStructure.parentStructure) {
-                if (isCollide(newStructure, checkStructure)) {
+        Object.entries(rooms).values((checkRoom) => {
+            if (checkRoom.name != newRoom.parentStructure) {
+                if (isCollide(newRoom, checkRoom)) {
                     collide = true
                 }
             }
         })
 
-        if (collide) {
-            current.structureIndex -= 1
-            return
-        }
+        if (collide) return
 
-        structure.directions = structure.directions.filter(d => d != direction)
+        room.directions = room.directions.filter(d => d != direction)
 
-        current.instantGameObject(newStructure)
+        current.instantGameObject(newRoom)
     },
-
-    generateMapRoom: (rows, cols) => {
-        const map = []
-
-        for (let row_i = 0; row_i < rows; row_i++) {
-            const row = []
-
-            for (let col_i = 0; col_i < cols; col_i++) {
-                if (row_i == 0 || row_i == rows - 1 || col_i == 0 || col_i == cols - 1) {
-                    row.push(1)
-                } else {
-                    row.push(0)
-                }
-            }
-
-            map.push(row)
-        }
-
-        return map
-    }
 }
 
 const game = new Game({
