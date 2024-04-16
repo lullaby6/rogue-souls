@@ -17,12 +17,107 @@ const Brick = {
     },
 }
 
+const Skeleton = {
+    color: 'transparent',
+    tags: ['enemy', 'skeleton'],
+    x: 4 * GRID_SIZE,
+    y: 4 * GRID_SIZE,
+    z: 1,
+    width: GRID_SIZE,
+    height: GRID_SIZE,
+    image: {
+        src: './images/skeleton.png'
+    },
+
+    movementDelay: 1000,
+    movementTimeout: null,
+
+    onUpdate: current => {
+        if (current.movementTimeout) return
+
+        const players = current.scene.getGameObjectsByTag('player')
+
+        let nearestPlayer = null
+        let distanceToNearestPlayer = Infinity
+
+        players.forEach(player => {
+            const distance = getDistance(current, player)
+
+            if (distance < distanceToNearestPlayer) {
+                nearestPlayer = player
+                distanceToNearestPlayer = distance
+            }
+        })
+
+        if (distanceToNearestPlayer <= 0) return
+
+        const movements = current.getMovements(current)
+
+        let bestMovement = null
+        let bestMovementDistance = distanceToNearestPlayer
+
+        Object.entries(movements).forEach(([movement, position]) => {
+            const distance = getDistance(nearestPlayer, position)
+
+            if (distance < bestMovementDistance) {
+                bestMovement = movement
+                bestMovementDistance = distance
+            }
+        })
+
+        if (bestMovement) {
+            current.movementTimeout = setTimeout(() => {
+                current.movementTimeout = null
+                const newX = movements[bestMovement].x
+                if (newX < current.x) {
+                    current.image.flipX = true
+                } else {
+                    current.image.flipX = false
+                }
+                current.x = newX
+                current.y = movements[bestMovement].y
+            }, current.movementDelay)
+        }
+    },
+
+    getMovements: current => {
+        const movements = {
+            left: {x: current.x - GRID_SIZE, y: current.y},
+            right: {x: current.x + GRID_SIZE, y: current.y},
+            up: {x: current.x, y: current.y - GRID_SIZE},
+            down: {x: current.x, y: current.y + GRID_SIZE},
+        }
+
+        Object.entries(movements).forEach(([movement, position]) => {
+            if (!current.canMove(current, position)) {
+                delete movements[movement]
+            }
+        })
+
+        return movements
+    },
+
+    canMove: (current, position) => {
+        const checkGameObjects = current.scene.getGameObjectsByPosition(position.x, position.y)
+
+        let canMove = true
+
+        checkGameObjects.forEach(checkGameObject => {
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                canMove = false
+            }
+        })
+
+        return canMove
+    }
+}
+
 const Player = {
     color: 'transparent',
     tags: ['player'],
     x: 2 * GRID_SIZE,
     y: 2 * GRID_SIZE,
-    z: 1,
+    z: 2,
     width: GRID_SIZE,
     height: GRID_SIZE,
     image: {
@@ -159,6 +254,10 @@ const MainScene = {
             structureIndex: 0,
         },
         Player: Player
+    },
+
+    onLoad: current => {
+        current.instantGameObject(Skeleton)
     },
 
     onUpdate: current => {
