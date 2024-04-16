@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 6
+const ROOMS = 8
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -385,24 +385,32 @@ const Room = {
     loadTileMap: current => {
         const map = current.generateMap(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
-        if (current.up != null) {
-            map[0][1] = 0
-            map[0][2] = 0
-        }
+        try {
+            if (current.up != null) {
+                map[0][current.up + 1] = 0
+                map[0][current.up + 2] = 0
+            }
 
-        if (current.down != null) {
-            map[map.length - 1][1] = 0
-            map[map.length - 1][2] = 0
-        }
+            if (current.down != null) {
+                map[map.length - 1][current.down + 1] = 0
+                map[map.length - 1][current.down + 2] = 0
+            }
 
-        if (current.left != null) {
-            map[current.left + 1][0] = 0
-            map[current.left + 2][0] = 0
-        }
+            if (current.left != null) {
+                map[current.left + 1][0] = 0
+                map[current.left + 2][0] = 0
+            }
 
-        if (current.right != null) {
-            map[current.right + 1][map[0].length - 1] = 0
-            map[current.right + 2][map[0].length - 1] = 0
+            if (current.right != null) {
+                map[current.right + 1][map[0].length - 1] = 0
+                map[current.right + 2][map[0].length - 1] = 0
+            }
+        } catch (error) {
+            console.log(error);
+
+            current.scene.game.resetScene()
+
+            return
         }
 
         current.scene.instantTileMap({
@@ -493,58 +501,90 @@ const MainScene = {
             case 'right':
                 newRoom.x += room.width
 
-                // const roomRightOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
-                // newRoom.y += roomRightOffsetY * GRID_SIZE
+                const roomRightOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
+                newRoom.y += roomRightOffsetY * GRID_SIZE
 
-                // const roomOffsetRightStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
-                // const roomOffsetRightEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
+                const roomOffsetRightStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
+                const roomOffsetRightEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
 
-                // const roomOffsetRight = randomIntFromInterval(roomOffsetRightStartRange, roomOffsetRightEndRange)
+                const roomOffsetRight = randomIntFromInterval(roomOffsetRightStartRange, roomOffsetRightEndRange)
 
-                // roomOffset.right = roomOffsetRight
+                roomOffset.right = roomOffsetRight
 
-                // if (newRoom.y <= room.y) {
-                //     newRoom.left = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetRight, 0)
-                // } else {
-                //     newRoom.left = Math.max(Math.min(roomOffsetRight - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
-                // }
-                newRoom.left = 0
-                roomOffset.right = 0
+                if (newRoom.y <= room.y) {
+                    newRoom.left = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetRight, 0)
+                } else {
+                    newRoom.left = Math.max(Math.min(roomOffsetRight - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
+                }
+                // newRoom.left = 0
+                // roomOffset.right = 0
                 break;
             case 'left':
                 newRoom.x -= newRoom.width
 
-                // const roomLeftOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
-                // newRoom.y += roomLeftOffsetY * GRID_SIZE
+                const roomLeftOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4 ))
+                newRoom.y += roomLeftOffsetY * GRID_SIZE
 
-                // const roomOffsetLeftStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
-                // const roomOffsetLeftEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
+                const roomOffsetLeftStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
+                const roomOffsetLeftEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
 
-                // const roomOffsetLeft = randomIntFromInterval(roomOffsetLeftStartRange, roomOffsetLeftEndRange)
+                const roomOffsetLeft = randomIntFromInterval(roomOffsetLeftStartRange, roomOffsetLeftEndRange)
 
-                // roomOffset.left = roomOffsetLeft
+                roomOffset.left = roomOffsetLeft
 
-                // if (newRoom.y <= room.y) {
-                //     newRoom.right = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetLeft, 0)
-                // } else {
-                //     newRoom.right = Math.max(Math.min(roomOffsetLeft - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
-                // }
+                if (newRoom.y <= room.y) {
+                    newRoom.right = Math.max((((room.y - newRoom.y) / GRID_SIZE)) + roomOffsetLeft, 0)
+                } else {
+                    newRoom.right = Math.max(Math.min(roomOffsetLeft - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
+                }
 
-                newRoom.right = 0
-                roomOffset.left = 0
+                // newRoom.right = 0
+                // roomOffset.left = 0
 
                 break;
             case 'up':
+                const roomUpOffsetX = randomIntFromInterval((-((newRoom.width / GRID_SIZE) - 4)), ((room.width / GRID_SIZE) - 4 ))
+                newRoom.x += roomUpOffsetX * GRID_SIZE
+
+                const roomOffsetUpStartRange = Math.max(-((room.x - newRoom.x) / GRID_SIZE), 0)
+                const roomOffsetUpEndRange = Math.max(Math.min((-(room.x - (newRoom.x + ((newRoom.width - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.width / GRID_SIZE) - 4), 0)
+
+                const roomOffsetUp = randomIntFromInterval(roomOffsetUpStartRange, roomOffsetUpEndRange)
+
+                roomOffset.up = roomOffsetUp
+
+                if (newRoom.x <= room.x) {
+                    newRoom.down = Math.max((((room.x - newRoom.x) / GRID_SIZE)) + roomOffsetUp, 0)
+                } else {
+                    newRoom.down = Math.max(Math.min(roomOffsetUp - Math.abs((room.x / GRID_SIZE) - (newRoom.x / GRID_SIZE)), (newRoom.width / GRID_SIZE) - 4), 0)
+                }
+
                 newRoom.y -= newRoom.height
 
-                newRoom.down = 0
-                roomOffset.up = 0
+                // newRoom.down = 0
+                // roomOffset.up = 0
                 break;
             case 'down':
+                const roomDownOffsetX = randomIntFromInterval((-((newRoom.width / GRID_SIZE) - 4)), ((room.width / GRID_SIZE) - 4 ))
+                newRoom.x += roomDownOffsetX * GRID_SIZE
+
+                const roomOffsetDownStartRange = Math.max(-((room.x - newRoom.x) / GRID_SIZE), 0)
+                const roomOffsetDownEndRange = Math.max(Math.min((-(room.x - (newRoom.x + ((newRoom.width - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.width / GRID_SIZE) - 4), 0)
+
+                const roomOffsetDown = randomIntFromInterval(roomOffsetDownStartRange, roomOffsetDownEndRange)
+
+                roomOffset.down = roomOffsetDown
+
+                if (newRoom.x <= room.x) {
+                    newRoom.up = Math.max((((room.x - newRoom.x) / GRID_SIZE)) + roomOffsetDown, 0)
+                } else {
+                    newRoom.up = Math.max(Math.min(roomOffsetDown - Math.abs((room.x / GRID_SIZE) - (newRoom.x / GRID_SIZE)), (newRoom.width / GRID_SIZE) - 4), 0)
+                }
+
                 newRoom.y += room.height
 
-                newRoom.up = 0
-                roomOffset.down = 0
+                // newRoom.up = 0
+                // roomOffset.down = 0
                 break;
             default:
                 break;
@@ -554,10 +594,13 @@ const MainScene = {
 
         let collide = false
 
-        Object.entries(structures).values((structure) => {
-            if (isCollide(newRoom, structure)) {
-                collide = true
+        Object.values(structures).forEach((structure) => {
+            if (structure.name != newRoom.parentStructure) {
+                if (isCollide(newRoom, structure)) {
+                    collide = true
+                }
             }
+
         })
 
         if (collide) return
