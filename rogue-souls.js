@@ -1,5 +1,7 @@
-const GRID_SIZE = 25
-const MAX_STRUCTURES = 12
+const GRID_SIZE = 32
+const STRUCTURES = 12
+const MIN_STRUCTURE_SIZE = 6
+const MAX_STRUCTURE_SIZE = 20
 
 const Slab = {
     color: 'transparent',
@@ -221,7 +223,7 @@ const Structure = {
     directions: ['left', 'right', 'up', 'down'],
 
     image: {
-        src: './images/25x_slab.png',
+        src: './images/32x_slab.png',
         pattern: true,
     },
 
@@ -264,7 +266,7 @@ const Structure = {
 }
 
 const MainScene = {
-    maxStructures: MAX_STRUCTURES,
+    maxStructures: STRUCTURES,
     structureIndex: 0,
     tileMapsLoaded: false,
 
@@ -315,8 +317,8 @@ const MainScene = {
             structureIndex: current.structureIndex
         }
 
-        newStructure.width = GRID_SIZE * randomIntFromInterval(6, 12)
-        newStructure.height = GRID_SIZE * randomIntFromInterval(6, 12)
+        newStructure.width = GRID_SIZE * randomIntFromInterval(MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE)
+        newStructure.height = GRID_SIZE * randomIntFromInterval(MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE)
 
         switch (direction) {
             case 'right':
@@ -387,6 +389,8 @@ const game = new Game({
     title: 'Rogue Souls',
     imageSmoothingEnabled: false,
     cursor: false,
+    width: 640,
+    height: 480,
 
     scenes: {
         main: MainScene
