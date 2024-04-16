@@ -14,6 +14,7 @@ const Slab = {
 const Brick = {
     color: 'transparent',
     tags: ['brick'],
+    z: 10,
     image: {
         src: './images/brick.png'
     },
@@ -21,7 +22,7 @@ const Brick = {
 
 const Skeleton = {
     color: 'transparent',
-    tags: ['enemy', 'skeleton'],
+    tags: ['enemy', 'skeleton', 'brick'],
     x: 4 * GRID_SIZE,
     y: 4 * GRID_SIZE,
     z: 1,
@@ -115,8 +116,10 @@ const Skeleton = {
                 current.image.flipX = false
             }
 
-            current.x = newPosition.x
-            current.y = newPosition.y
+            if (current.canMove(current, newPosition)) {
+                current.x = newPosition.x
+                current.y = newPosition.y
+            }
         }, current.movementDelay)
     },
 
@@ -136,9 +139,34 @@ const Skeleton = {
     },
 }
 
+const Sword = {
+    color: 'transparent',
+    tags: ['item', 'sword'],
+    width: GRID_SIZE/1.5,
+    height: GRID_SIZE/1.5,
+    image: {
+        src: './images/sword.png'
+    },
+
+    onUpdate: current => {
+        const player = current.player
+
+        current.x = player.x + (current.width * 1.25)
+        if (player.image.flipX) {
+            current.x = player.x - (current.width - (current.width/4))
+            current.image.flipX = true
+        } else {
+            current.x = player.x + (current.width + (current.width/4))
+            current.image.flipX = false
+        }
+
+        current.y = player.y + (current.height / 4)
+    }
+}
+
 const Player = {
     color: 'transparent',
-    tags: ['player'],
+    tags: ['player', 'brick'],
     x: 2 * GRID_SIZE,
     y: 2 * GRID_SIZE,
     z: 2,
@@ -148,14 +176,38 @@ const Player = {
         src: './images/knight.png'
     },
 
+    moved: {
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+    },
+
+
+    items: [],
+
+    onLoad: current => {
+        const sword = current.scene.instantGameObject({
+            ...Sword,
+            x: current.x,
+            y: current.y,
+            z: current.z + 1,
+            player: current
+        })
+
+        current.items.push(sword)
+    },
+
     onUpdate: current => {
         current.scene.game.camera.setTarget(current, 10)
     },
 
-    onKeyup: ({event, current}) => {
+    onKeydown: ({event, current}) => {
         if (current.scene.game.pause) return
 
-        if (event.key == 'w') {
+        if (event.key == 'w' && !current.moved.up) {
+            current.moved.up = true
+
             const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y - GRID_SIZE)
 
             let wall = false
@@ -169,7 +221,9 @@ const Player = {
             if (wall) return
 
             current.y -= GRID_SIZE
-        } else if (event.key == 'a') {
+        } else if (event.key == 'a' && !current.moved.left) {
+            current.moved.left = true
+
             const checkGameObjects = current.scene.getGameObjectsByPosition(current.x - GRID_SIZE, current.y)
 
             let wall = false
@@ -184,7 +238,9 @@ const Player = {
 
             current.image.flipX = true
             current.x -= GRID_SIZE
-        } else if (event.key == 's') {
+        } else if (event.key == 's' && !current.moved.down) {
+            current.moved.down = true
+
             const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y + GRID_SIZE)
 
             let wall = false
@@ -198,7 +254,9 @@ const Player = {
             if (wall) return
 
             current.y += GRID_SIZE
-        } else if (event.key == 'd') {
+        } else if (event.key == 'd' && !current.moved.right) {
+            current.moved.right = true
+
             const checkGameObjects = current.scene.getGameObjectsByPosition(current.x + GRID_SIZE, current.y)
 
             let wall = false
@@ -213,6 +271,18 @@ const Player = {
 
             current.image.flipX = false
             current.x += GRID_SIZE
+        }
+    },
+
+    onKeyup: ({current, event}) => {
+        if (event.key == 'w') {
+            current.moved.up = false
+        } else if (event.key == 'a') {
+            current.moved.left = false
+        } else if (event.key == 's') {
+            current.moved.down = false
+        } else if (event.key == 'd') {
+            current.moved.right = false
         }
     }
 }
