@@ -32,9 +32,7 @@ const Skeleton = {
     movementDelay: 1000,
     movementTimeout: null,
 
-    onUpdate: current => {
-        if (current.movementTimeout) return
-
+    getNearestPlayer: current => {
         const players = current.scene.getGameObjectsByTag('player')
 
         let nearestPlayer = null
@@ -49,34 +47,9 @@ const Skeleton = {
             }
         })
 
-        if (distanceToNearestPlayer <= 0) return
-
-        const movements = current.getMovements(current)
-
-        let bestMovement = null
-        let bestMovementDistance = distanceToNearestPlayer
-
-        Object.entries(movements).forEach(([movement, position]) => {
-            const distance = getDistance(nearestPlayer, position)
-
-            if (distance < bestMovementDistance) {
-                bestMovement = movement
-                bestMovementDistance = distance
-            }
-        })
-
-        if (bestMovement) {
-            current.movementTimeout = setTimeout(() => {
-                current.movementTimeout = null
-                const newX = movements[bestMovement].x
-                if (newX < current.x) {
-                    current.image.flipX = true
-                } else {
-                    current.image.flipX = false
-                }
-                current.x = newX
-                current.y = movements[bestMovement].y
-            }, current.movementDelay)
+        return {
+            nearestPlayer,
+            distanceToNearestPlayer
         }
     },
 
@@ -109,7 +82,56 @@ const Skeleton = {
         })
 
         return canMove
-    }
+    },
+
+    getBestMovement: (current, movements, nearestPlayer, distanceToNearestPlayer) => {
+        let bestMovement = null
+        let bestMovementDistance = distanceToNearestPlayer
+
+        Object.entries(movements).forEach(([movement, position]) => {
+            const distance = getDistance(nearestPlayer, position)
+
+            if (distance < bestMovementDistance) {
+                bestMovement = movement
+                bestMovementDistance = distance
+            }
+        })
+
+        return {
+            movement: bestMovement,
+            newPosition: movements[bestMovement]
+        }
+    },
+
+    move: (current, movement, newPosition) => {
+        current.movementTimeout = setTimeout(() => {
+            current.movementTimeout = null
+
+            if (movement === 'left') {
+                current.image.flipX = true
+            } else if (movement === 'right') {
+                current.image.flipX = false
+            }
+
+            current.x = newPosition.x
+            current.y = newPosition.y
+        }, current.movementDelay)
+    },
+
+    onUpdate: current => {
+        if (current.movementTimeout) return
+
+        const {nearestPlayer, distanceToNearestPlayer} = current.getNearestPlayer(current)
+
+        if (!nearestPlayer || !distanceToNearestPlayer || distanceToNearestPlayer <= 0) return
+
+        const movements = current.getMovements(current)
+
+        const {movement, newPosition} = current.getBestMovement(current, movements, nearestPlayer, distanceToNearestPlayer)
+
+        if (!movement || !newPosition) return
+        current.move(current, movement, newPosition)
+    },
 }
 
 const Player = {
