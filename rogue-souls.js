@@ -278,10 +278,6 @@ const MainScene = {
         Player: Player
     },
 
-    onLoad: current => {
-        current.instantGameObject(Skeleton)
-    },
-
     onUpdate: current => {
         if (!current.tileMapsLoaded) current.generateStructures(current)
 
@@ -301,6 +297,8 @@ const MainScene = {
             structures.forEach(structure => {
                 structure.loadTileMaps(structure)
             })
+
+            current.instantGameObject(Skeleton)
         }
     },
 
