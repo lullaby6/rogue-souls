@@ -169,7 +169,7 @@ class GameObject {
                 this.scene.game.ctx.drawImage(this.imageCache, this.x + this.image.x, this.y + this.image.y, this.width + this.image.width, this.height + this.image.height)
             }
             this.scene.game.ctx.restore()
-        } else {
+        } else if (this.image.src && this.image.src != '') {
             this.loadImageCache()
         }
 
