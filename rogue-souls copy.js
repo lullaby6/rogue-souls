@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 8
+const ROOMS = 12
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -335,7 +335,6 @@ const Room = {
     right: null,
     up: null,
     down: null,
-    exits: {},
 
     generateMap: (rows, cols) => {
         const map = []
@@ -443,7 +442,17 @@ const MainScene = {
     },
 
     createRoom: (current, room) => {
-        const direction = randomItemFromArray(['left', 'right', 'up', 'down'])
+        let directions = ['left', 'right', 'up', 'down']
+        // directions = ['left', 'right']
+        // directions = ['right']
+
+        // directions.forEach(direction =>{
+        //     if (room[direction] != null) {
+        //         directions = directions.filter(d => d != direction)
+        //     }
+        // })
+
+        const direction = randomItemFromArray(directions)
 
         let newRoom = {
             ...Room,
@@ -462,21 +471,39 @@ const MainScene = {
             case 'left':
                 newRoom.x -= newRoom.width
                 newRoom.y += newRoomOffsetY * GRID_SIZE
+
                 break;
 
             case 'right':
                 newRoom.x += room.width
                 newRoom.y += newRoomOffsetY * GRID_SIZE
+
+                // const roomOffsetRightStartRange = Math.max(-((room.y - newRoom.y) / GRID_SIZE), 0)
+                // const roomOffsetRightEndRange = Math.max(Math.min((-(room.y - (newRoom.y + ((newRoom.height - (4 * GRID_SIZE))))/ GRID_SIZE)), (room.height / GRID_SIZE) - 4), 0)
+
+                // let roomOffsetRight = randomIntFromInterval(roomOffsetRightStartRange, roomOffsetRightEndRange)
+
+                // roomOffset.right = roomOffsetRight
+
+                // if (newRoom.y <= room.y) {
+                //     newRoom.left = Math.max((Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE))) + roomOffsetRight, 0)
+                // } else {
+                //     roomOffset.right = roomOffsetRight
+                //     newRoom.left = Math.max(Math.min(roomOffsetRight - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
+                // }
+
                 break;
 
             case 'up':
                 newRoom.x += newRoomOffsetX * GRID_SIZE
-                newRoom.y -= newRoom.heigh
+                newRoom.y -= newRoom.height
+
                 break;
 
             case 'down':
                 newRoom.x += newRoomOffsetX * GRID_SIZE
                 newRoom.y += room.height
+
                 break;
 
             default:

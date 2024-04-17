@@ -107,6 +107,17 @@ const defaultGameObjectProps = {
     text: defaultGameObjectTextProps,
 }
 
+const imagesCache = {}
+
+function loadImageCache(src) {
+    const image = new Image()
+    image.src = src
+    imagesCache[src] = image
+    imagesCache[src].onload = function() {
+        imagesCache[src] = this
+    }
+}
+
 class GameObject {
     constructor(props) {
         this.id = crypto.randomUUID()
@@ -136,11 +147,16 @@ class GameObject {
     }
 
     loadImageCache() {
-        const image = new Image()
-        image.src = this.image.src
         const gameObject = this
-        image.onload = function() {
-            gameObject.imageCache = image
+        if (imagesCache[this.image.src]) {
+            gameObject.imageCache = imagesCache[this.image.src]
+        } else {
+            const image = new Image()
+            image.src = this.image.src
+            imagesCache[gameObject.image.src] = image
+            image.onload = function() {
+                gameObject.imageCache = image
+            }
         }
     }
 
