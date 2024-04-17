@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 8
+const ROOMS = 10
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -204,74 +204,48 @@ const Player = {
         current.scene.game.camera.setTarget(current, 10)
     },
 
+    canMove: (current, x, y) => {
+        const checkGameObjects = current.scene.getGameObjectsByPosition(x, y)
+
+        let move = true
+
+        checkGameObjects.forEach(checkGameObject => {
+            if (checkGameObject && checkGameObject.tags.includes('brick')) {
+                move = false
+            }
+        })
+
+        return move
+    },
+
     onKeydown: ({event, current}) => {
         if (current.scene.game.pause) return
 
         if (event.key == 'w' && !current.moved.up) {
             current.moved.up = true
 
-            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y - GRID_SIZE)
-
-            let wall = false
-
-            checkGameObjects.forEach(checkGameObject => {
-                if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                    wall = true
-                }
-            })
-
-            if (wall) return
+            if (!current.canMove(current, current.x, current.y - GRID_SIZE)) return
 
             current.y -= GRID_SIZE
         } else if (event.key == 'a' && !current.moved.left) {
             current.moved.left = true
-
-            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x - GRID_SIZE, current.y)
-
-            let wall = false
-
-            checkGameObjects.forEach(checkGameObject => {
-                if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                    wall = true
-                }
-            })
-
-            if (wall) return
-
             current.image.flipX = true
+
+            if (!current.canMove(current, current.x - GRID_SIZE, current.y)) return
+
             current.x -= GRID_SIZE
         } else if (event.key == 's' && !current.moved.down) {
             current.moved.down = true
 
-            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x, current.y + GRID_SIZE)
-
-            let wall = false
-
-            checkGameObjects.forEach(checkGameObject => {
-                if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                    wall = true
-                }
-            })
-
-            if (wall) return
+            if (!current.canMove(current, current.x, current.y + GRID_SIZE)) return
 
             current.y += GRID_SIZE
         } else if (event.key == 'd' && !current.moved.right) {
             current.moved.right = true
-
-            const checkGameObjects = current.scene.getGameObjectsByPosition(current.x + GRID_SIZE, current.y)
-
-            let wall = false
-
-            checkGameObjects.forEach(checkGameObject => {
-                if (checkGameObject && checkGameObject.tags.includes('brick')) {
-                    wall = true
-                }
-            })
-
-            if (wall) return
-
             current.image.flipX = false
+
+            if (!current.canMove(current, current.x + GRID_SIZE, current.y)) return
+
             current.x += GRID_SIZE
         }
     },
@@ -516,9 +490,11 @@ const MainScene = {
                 } else {
                     newRoom.left = Math.max(Math.min(roomOffsetRight - Math.abs((room.y / GRID_SIZE) - (newRoom.y / GRID_SIZE)), (newRoom.height / GRID_SIZE) - 4), 0)
                 }
+
                 // newRoom.left = 0
                 // roomOffset.right = 0
                 break;
+
             case 'left':
                 newRoom.x -= newRoom.width
 
@@ -540,8 +516,8 @@ const MainScene = {
 
                 // newRoom.right = 0
                 // roomOffset.left = 0
-
                 break;
+
             case 'up':
                 const roomUpOffsetX = randomIntFromInterval((-((newRoom.width / GRID_SIZE) - 4)), ((room.width / GRID_SIZE) - 4 ))
                 newRoom.x += roomUpOffsetX * GRID_SIZE
@@ -627,6 +603,11 @@ const game = new Game({
         if (event.key == 'f') current.toggleFullscreen()
         else if (event.key == 'p') current.togglePause()
         else if (event.key == 'r') current.resetScene()
+        else if (event.key == 'z') {
+            current.camera.zoom == 1
+                ? current.camera.setZoom(0.1)
+                : current.camera.setZoom(1)
+        }
     },
 
     onPause: current => {
