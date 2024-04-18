@@ -96,7 +96,7 @@ const defaultGameObjectProps = {
     ignorePause: false,
     active: true,
     visible: true,
-    dontRenderIfNotVisible: true,
+    dontRenderIfNotVisible: false,
     dontUpdateIfNotVisible: false,
     checkCollision: true,
     checkInside: true,

@@ -185,7 +185,6 @@ const Player = {
         down: false,
     },
 
-
     items: [],
 
     onLoad: current => {
@@ -335,7 +334,10 @@ const Room = {
     right: null,
     up: null,
     down: null,
-    exits: {},
+
+    onLoad: current => {
+        if (!current.exits) current.exits = []
+    },
 
     generateMap: (rows, cols) => {
         const map = []
@@ -361,27 +363,11 @@ const Room = {
         const map = current.generateMap(current.height/GRID_SIZE, current.width/GRID_SIZE)
 
         try {
-            if (current.up != null) {
-                map[0][current.up + 1] = 0
-                map[0][current.up + 2] = 0
-            }
-
-            if (current.down != null) {
-                map[map.length - 1][current.down + 1] = 0
-                map[map.length - 1][current.down + 2] = 0
-            }
-
-            if (current.left != null) {
-                map[current.left + 1][0] = 0
-                map[current.left + 2][0] = 0
-            }
-
-            if (current.right != null) {
-                map[current.right + 1][map[0].length - 1] = 0
-                map[current.right + 2][map[0].length - 1] = 0
-            }
+            current.exits.forEach(([x, y]) => {
+                map[y][x] = 0
+            })
         } catch (error) {
-            console.log(error);
+            console.error(error);
 
             current.scene.game.resetScene()
 
@@ -442,41 +428,70 @@ const MainScene = {
         }
     },
 
-    createRoom: (current, room) => {
-        const direction = randomItemFromArray(['left', 'right', 'up', 'down'])
+    createRoom: (current, parentStructure) => {
+        let direction = randomItemFromArray(['left', 'right', 'up', 'down'])
 
         let newRoom = {
             ...Room,
-            parentStructure: room.name,
-            x: room.x,
-            y: room.y,
+            parentStructure: parentStructure.name,
+            x: parentStructure.x,
+            y: parentStructure.y,
+            exits: []
         }
 
         newRoom.width = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
         newRoom.height = GRID_SIZE * randomIntFromInterval(MIN_ROOM_SIZE, MAX_ROOM_SIZE)
 
-        const newRoomOffsetY = randomIntFromInterval((-((newRoom.height / GRID_SIZE) - 4)), ((room.height / GRID_SIZE) - 4))
-        const newRoomOffsetX = randomIntFromInterval((-((newRoom.width / GRID_SIZE) - 4)), ((room.width / GRID_SIZE) - 4))
+        const parentStructureExitY = randomIntFromInterval(1, (parentStructure.height / GRID_SIZE) - 3)
+        const parentStructureExitX = randomIntFromInterval(1, (parentStructure.width / GRID_SIZE) - 3)
+        const newRoomExitY = randomIntFromInterval(1, (newRoom.height / GRID_SIZE) - 3)
+        const newRoomExitX = randomIntFromInterval(1, (newRoom.width / GRID_SIZE) - 3)
+
+        const parentStructureExits = []
 
         switch (direction) {
             case 'left':
+                parentStructureExits.push([0, parentStructureExitY])
+                parentStructureExits.push([0, parentStructureExitY + 1])
+
+                newRoom.exits.push([(newRoom.width / GRID_SIZE) - 1, newRoomExitY])
+                newRoom.exits.push([(newRoom.width / GRID_SIZE) - 1, newRoomExitY + 1])
+
                 newRoom.x -= newRoom.width
-                newRoom.y += newRoomOffsetY * GRID_SIZE
+                newRoom.y += (parentStructureExitY - newRoomExitY) * GRID_SIZE
                 break;
 
             case 'right':
-                newRoom.x += room.width
-                newRoom.y += newRoomOffsetY * GRID_SIZE
+                parentStructureExits.push([(parentStructure.width / GRID_SIZE) - 1, parentStructureExitY])
+                parentStructureExits.push([(parentStructure.width / GRID_SIZE) - 1, parentStructureExitY + 1])
+
+                newRoom.exits.push([0, newRoomExitY])
+                newRoom.exits.push([0, newRoomExitY + 1])
+
+                newRoom.x += parentStructure.width
+                newRoom.y += (parentStructureExitY - newRoomExitY) * GRID_SIZE
                 break;
 
             case 'up':
-                newRoom.x += newRoomOffsetX * GRID_SIZE
-                newRoom.y -= newRoom.heigh
+                parentStructureExits.push([parentStructureExitX, 0])
+                parentStructureExits.push([parentStructureExitX + 1, 0])
+
+                newRoom.exits.push([newRoomExitX, (newRoom.height / GRID_SIZE) - 1])
+                newRoom.exits.push([newRoomExitX + 1, (newRoom.height / GRID_SIZE) - 1])
+
+                newRoom.x += (parentStructureExitX - newRoomExitX) * GRID_SIZE
+                newRoom.y -= newRoom.height
                 break;
 
             case 'down':
-                newRoom.x += newRoomOffsetX * GRID_SIZE
-                newRoom.y += room.height
+                parentStructureExits.push([parentStructureExitX, (parentStructure.height / GRID_SIZE) - 1])
+                parentStructureExits.push([parentStructureExitX + 1, (parentStructure.height / GRID_SIZE) - 1])
+
+                newRoom.exits.push([newRoomExitX, 0])
+                newRoom.exits.push([newRoomExitX + 1, 0])
+
+                newRoom.x += (parentStructureExitX - newRoomExitX) * GRID_SIZE
+                newRoom.y += parentStructure.height
                 break;
 
             default:
@@ -494,6 +509,8 @@ const MainScene = {
         })
 
         if (collide) return
+
+        parentStructure.exits = [...parentStructure.exits, ...parentStructureExits]
 
         current.instantGameObject(newRoom)
     },
