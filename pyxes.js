@@ -368,12 +368,14 @@ class Scene {
     }
 
     addTileMap(name, tileMap) {
+        const gameObjects = []
+
         tileMap.map.forEach((row, y) => {
             row.forEach((_, x) => {
                 const tile = tileMap.tiles[tileMap.map[y][x]]
 
                 if (tile) {
-                    this.instantGameObject({
+                    const gameObject = this.instantGameObject({
                         ...tile,
                         x: tileMap.x + x * tileMap.size,
                         y: tileMap.y + y * tileMap.size,
@@ -381,10 +383,14 @@ class Scene {
                         height: tileMap.size,
                         tileMap: name
                     })
+
+                    gameObjects.push(gameObject)
                 }
 
             })
         })
+
+        return gameObjects
     }
 
     instantTileMap(tileMap) {

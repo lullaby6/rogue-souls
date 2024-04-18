@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 8
+const ROOMS = 6
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -22,6 +22,18 @@ const Brick = {
     },
 }
 
+const Trap = {
+    color: 'transparent',
+    tags: ['trap'],
+    image: {
+        src: './images/trap_off.png'
+    },
+
+    onLoad: () => {
+        loadImageCache('./images/trap_on.png')
+    }
+}
+
 const Skeleton = {
     color: 'transparent',
     tags: ['enemy', 'skeleton', 'brick'],
@@ -34,7 +46,7 @@ const Skeleton = {
         src: './images/skeleton.png'
     },
 
-    movementDelay: 1000,
+    movementDelay: 750,
     movementTimeout: null,
 
     getNearestPlayer: current => {
@@ -112,17 +124,20 @@ const Skeleton = {
         current.movementTimeout = setTimeout(() => {
             current.movementTimeout = null
 
-            if (movement === 'left') {
-                current.image.flipX = true
-            } else if (movement === 'right') {
-                current.image.flipX = false
-            }
-
             if (current.canMove(current, newPosition)) {
                 current.x = newPosition.x
                 current.y = newPosition.y
             }
         }, current.movementDelay)
+
+    },
+
+    onPlayermove: current => {
+        if (current.nearesPlayer.x > current.x) {
+            current.image.flipX = false
+        } else {
+            current.image.flipX = true
+        }
     },
 
     onUpdate: current => {
@@ -131,6 +146,7 @@ const Skeleton = {
         const {nearestPlayer, distanceToNearestPlayer} = current.getNearestPlayer(current)
 
         if (!nearestPlayer || !distanceToNearestPlayer || distanceToNearestPlayer <= 0) return
+        current.nearesPlayer = nearestPlayer
 
         const movements = current.getMovements(current)
 
@@ -247,6 +263,31 @@ const Player = {
 
             current.x += GRID_SIZE
         }
+
+        current.scene.game.customEvent('playermove')
+
+        const rooms = current.scene.getGameObjectsByTag('room')
+
+        rooms.forEach(room => {
+            if (isInside(current, room)) {
+                if (room.name == 'mainRoom') return
+                if (room.closed) return
+
+                const atPosition = current.scene.getGameObjectsByPosition(current.x, current.y)
+                let inTrap = false
+                if (atPosition.length > 1) {
+                    atPosition.forEach(gameObject => {
+                        if (gameObject.tags.includes('trap')) {
+                            inTrap = true
+                        }
+                    })
+                }
+
+                if (!inTrap) {
+                    room.close(room)
+                }
+            }
+        })
     },
 
     onKeyup: ({current, event}) => {
@@ -334,9 +375,11 @@ const Room = {
     right: null,
     up: null,
     down: null,
+    closed: false,
 
     onLoad: current => {
         if (!current.exits) current.exits = []
+        if (!current.traps) current.traps = []
     },
 
     generateMap: (rows, cols) => {
@@ -364,7 +407,7 @@ const Room = {
 
         try {
             current.exits.forEach(([x, y]) => {
-                map[y][x] = 0
+                map[y][x] = 2
             })
         } catch (error) {
             console.error(error);
@@ -374,15 +417,44 @@ const Room = {
             return
         }
 
-        current.scene.instantTileMap({
+        const tileMapGameObjects = current.scene.instantTileMap({
             x: current.x,
             y: current.y,
             size: GRID_SIZE ,
             tiles: {
                 0: null,
-                1: Brick
+                1: {
+                    ...Brick,
+                    parentGameObjectName: current.name,
+                },
+                2: {
+                    ...Trap,
+                    parentGameObjectName: current.name,
+                }
             },
             map,
+        })
+
+        tileMapGameObjects.forEach(tileMapGameObject => {
+            if (tileMapGameObject.tags.includes('trap')) {
+                current.traps = [...current.traps, tileMapGameObject]
+            }
+        })
+    },
+
+    close: current => {
+        current.closed = true
+
+        current.traps.forEach(trap => {
+            trap.tags = [...trap.tags, 'brick']
+            trap.setImageSource('./images/trap_on.png')
+        })
+
+        current.scene.instantGameObject({
+            ...Skeleton,
+            x: current.x + (randomIntFromInterval(1, (current.width / GRID_SIZE) - 2) * GRID_SIZE),
+            y: current.y + (randomIntFromInterval(1, (current.height / GRID_SIZE) - 2) * GRID_SIZE),
+            parentGameObjectName: current.name,
         })
     },
 }
@@ -423,8 +495,6 @@ const MainScene = {
             rooms.forEach(room => {
                 room.loadTileMap(room)
             })
-
-            current.instantGameObject(Skeleton)
         }
     },
 
