@@ -1,5 +1,5 @@
 const GRID_SIZE = 32
-const ROOMS = 6
+const ROOMS = 7
 const MAX_PATH_WIDTH = 4
 const MAX_PATH_LENGTH = 10
 const MIN_ROOM_SIZE = 10
@@ -124,12 +124,13 @@ const Skeleton = {
         current.movementTimeout = setTimeout(() => {
             current.movementTimeout = null
 
+            if (current.scene.game.pause == true) return
+
             if (current.canMove(current, newPosition)) {
                 current.x = newPosition.x
                 current.y = newPosition.y
             }
         }, current.movementDelay)
-
     },
 
     onPlayermove: current => {
@@ -450,6 +451,16 @@ const Room = {
             trap.setImageSource('./images/trap_on.png')
         })
 
+        const area = parseInt(((current.width / GRID_SIZE) * (current.height / GRID_SIZE)))
+
+        const skeletonsCount = randomIntFromInterval(area / 100, area / 50)
+
+        for (let i = 0; i < skeletonsCount; i++) {
+            current.generateSkeleton(current)
+        }
+    },
+
+    generateSkeleton: (current) => {
         current.scene.instantGameObject({
             ...Skeleton,
             x: current.x + (randomIntFromInterval(1, (current.width / GRID_SIZE) - 2) * GRID_SIZE),
